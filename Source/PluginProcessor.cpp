@@ -1,0 +1,236 @@
+#include "PluginProcessor.h"
+#include "PluginEditor.h"
+
+namespace
+{
+    // Parameter IDs kept in one place so the editor and processor agree.
+    constexpr auto pDrive   = "drive";
+    constexpr auto pModel   = "model";
+    constexpr auto pTone    = "tone";
+    constexpr auto pLowCut  = "lowcut";
+    constexpr auto pHighCut = "highcut";
+    constexpr auto pPunish  = "punish";
+    constexpr auto pMix     = "mix";
+    constexpr auto pOutput  = "output";
+}
+
+//==============================================================================
+DecapitoneAudioProcessor::DecapitoneAudioProcessor()
+    : AudioProcessor (BusesProperties()
+        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
+        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+      apvts (*this, nullptr, "PARAMETERS", createParameterLayout())
+{
+}
+
+//==============================================================================
+juce::AudioProcessorValueTreeState::ParameterLayout
+DecapitoneAudioProcessor::createParameterLayout()
+{
+    using namespace juce;
+    AudioProcessorValueTreeState::ParameterLayout layout;
+
+    // Drive: 0..10 like the hardware-style "amount" knob.
+    layout.add (std::make_unique<AudioParameterFloat>(
+        ParameterID { pDrive, 1 }, "Drive",
+        NormalisableRange<float> (0.0f, 10.0f, 0.01f), 3.0f));
+
+    layout.add (std::make_unique<AudioParameterChoice>(
+        ParameterID { pModel, 1 }, "Style",
+        StringArray { "A - Tape", "E - EMI", "N - Neve", "T - Triode", "P - Pentode" },
+        0));
+
+    // Tone: -1 dark .. +1 bright tilt EQ, 0 = neutral.
+    layout.add (std::make_unique<AudioParameterFloat>(
+        ParameterID { pTone, 1 }, "Tone",
+        NormalisableRange<float> (-1.0f, 1.0f, 0.001f), 0.0f));
+
+    layout.add (std::make_unique<AudioParameterFloat>(
+        ParameterID { pLowCut, 1 }, "Low Cut",
+        NormalisableRange<float> (20.0f, 1000.0f, 1.0f, 0.3f), 20.0f,
+        AudioParameterFloatAttributes().withLabel ("Hz")));
+
+    layout.add (std::make_unique<AudioParameterFloat>(
+        ParameterID { pHighCut, 1 }, "High Cut",
+        NormalisableRange<float> (1000.0f, 20000.0f, 1.0f, 0.3f), 20000.0f,
+        AudioParameterFloatAttributes().withLabel ("Hz")));
+
+    layout.add (std::make_unique<AudioParameterBool>(
+        ParameterID { pPunish, 1 }, "Punish", false));
+
+    layout.add (std::make_unique<AudioParameterFloat>(
+        ParameterID { pMix, 1 }, "Mix",
+        NormalisableRange<float> (0.0f, 100.0f, 0.1f), 100.0f,
+        AudioParameterFloatAttributes().withLabel ("%")));
+
+    layout.add (std::make_unique<AudioParameterFloat>(
+        ParameterID { pOutput, 1 }, "Output",
+        NormalisableRange<float> (-24.0f, 24.0f, 0.1f), 0.0f,
+        AudioParameterFloatAttributes().withLabel ("dB")));
+
+    return layout;
+}
+
+//==============================================================================
+void DecapitoneAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+{
+    currentSampleRate = sampleRate;
+
+    oversampler = std::make_unique<juce::dsp::Oversampling<float>>(
+        2, oversampleFactor,
+        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR);
+    oversampler->initProcessing (static_cast<size_t> (samplesPerBlock));
+
+    juce::dsp::ProcessSpec spec;
+    spec.sampleRate       = sampleRate * oversampler->getOversamplingFactor();
+    spec.maximumBlockSize = static_cast<juce::uint32> (samplesPerBlock) * oversampler->getOversamplingFactor();
+    spec.numChannels      = 1;
+
+    for (auto& f : lowCut)   f.prepare (spec);
+    for (auto& f : highCut)  f.prepare (spec);
+    for (auto& f : toneLow)  f.prepare (spec);
+    for (auto& f : toneHigh) f.prepare (spec);
+
+    driveSmoothed .reset (sampleRate, 0.02);
+    mixSmoothed   .reset (sampleRate, 0.02);
+    outputSmoothed.reset (sampleRate, 0.02);
+
+    updateFilters();
+}
+
+void DecapitoneAudioProcessor::updateFilters()
+{
+    const double osRate = currentSampleRate * (oversampler ? oversampler->getOversamplingFactor() : 1);
+
+    const float lc   = apvts.getRawParameterValue (pLowCut)->load();
+    const float hc   = apvts.getRawParameterValue (pHighCut)->load();
+    const float tone = apvts.getRawParameterValue (pTone)->load();
+
+    auto hp = juce::dsp::IIR::Coefficients<float>::makeHighPass (osRate, lc);
+    auto lp = juce::dsp::IIR::Coefficients<float>::makeLowPass  (osRate, hc);
+
+    // Tone is a tilt: positive boosts highs / cuts lows, negative the reverse.
+    const float tiltDb = tone * 6.0f; // +/- 6 dB at the extremes
+    auto ls = juce::dsp::IIR::Coefficients<float>::makeLowShelf  (osRate, 250.0f,  0.5f, juce::Decibels::decibelsToGain (-tiltDb));
+    auto hs = juce::dsp::IIR::Coefficients<float>::makeHighShelf (osRate, 4000.0f, 0.5f, juce::Decibels::decibelsToGain ( tiltDb));
+
+    for (auto& f : lowCut)   *f.coefficients = *hp;
+    for (auto& f : highCut)  *f.coefficients = *lp;
+    for (auto& f : toneLow)  *f.coefficients = *ls;
+    for (auto& f : toneHigh) *f.coefficients = *hs;
+}
+
+//==============================================================================
+bool DecapitoneAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+{
+    const auto& out = layouts.getMainOutputChannelSet();
+    if (out != juce::AudioChannelSet::mono() && out != juce::AudioChannelSet::stereo())
+        return false;
+    return out == layouts.getMainInputChannelSet();
+}
+
+void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
+                                             juce::MidiBuffer&)
+{
+    juce::ScopedNoDenormals noDenormals;
+
+    const int numCh = buffer.getNumChannels();
+    for (int ch = getTotalNumInputChannels(); ch < getTotalNumOutputChannels(); ++ch)
+        buffer.clear (ch, 0, buffer.getNumSamples());
+
+    updateFilters();
+
+    const auto model    = static_cast<decap::Model> ((int) apvts.getRawParameterValue (pModel)->load());
+    const bool punish   = apvts.getRawParameterValue (pPunish)->load() > 0.5f;
+    const float driveRaw = apvts.getRawParameterValue (pDrive)->load();
+    const float mixRaw   = apvts.getRawParameterValue (pMix)->load() * 0.01f;
+    const float outRaw   = juce::Decibels::decibelsToGain (apvts.getRawParameterValue (pOutput)->load());
+
+    // Map 0..10 to a usable gain. Punish opens up a far hotter range.
+    const float driveGain = juce::Decibels::decibelsToGain (driveRaw * (punish ? 6.0f : 3.0f));
+    // Auto-gain: compensate roughly for the drive so levels stay sane.
+    const float autoComp  = 1.0f / std::sqrt (1.0f + driveGain * 0.25f);
+
+    driveSmoothed .setTargetValue (driveGain);
+    mixSmoothed   .setTargetValue (mixRaw);
+    outputSmoothed.setTargetValue (outRaw);
+
+    // Keep a dry copy for the mix.
+    juce::AudioBuffer<float> dry;
+    dry.makeCopyOf (buffer);
+
+    juce::dsp::AudioBlock<float> block (buffer);
+    auto osBlock = oversampler->processSamplesUp (block);
+
+    const int osNumSamples = (int) osBlock.getNumSamples();
+
+    for (int ch = 0; ch < numCh && ch < 2; ++ch)
+    {
+        auto* data = osBlock.getChannelPointer ((size_t) ch);
+
+        for (int i = 0; i < osNumSamples; ++i)
+        {
+            float x = data[i];
+
+            x = lowCut[ch] .processSample (x);
+            x = toneLow[ch].processSample (x);
+            x = toneHigh[ch].processSample (x);
+
+            const float d = driveSmoothed.getNextValue();
+            x = decap::shape (x * d, model) * autoComp;
+
+            x = highCut[ch].processSample (x);
+
+            data[i] = x;
+        }
+    }
+
+    oversampler->processSamplesDown (block);
+
+    // Mix + output gain at base rate.
+    float peak = 0.0f;
+    for (int ch = 0; ch < numCh; ++ch)
+    {
+        auto* wet = buffer.getWritePointer (ch);
+        const auto* dryData = dry.getReadPointer (juce::jmin (ch, dry.getNumChannels() - 1));
+
+        for (int i = 0; i < buffer.getNumSamples(); ++i)
+        {
+            const float m = mixSmoothed.getNextValue();
+            const float g = outputSmoothed.getNextValue();
+            float s = (wet[i] * m + dryData[i] * (1.0f - m)) * g;
+            wet[i] = s;
+            peak = juce::jmax (peak, std::abs (s));
+        }
+    }
+
+    outputLevel.store (peak);
+}
+
+//==============================================================================
+juce::AudioProcessorEditor* DecapitoneAudioProcessor::createEditor()
+{
+    return new DecapitoneAudioProcessorEditor (*this);
+}
+
+void DecapitoneAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+{
+    if (auto state = apvts.copyState(); state.isValid())
+    {
+        juce::MemoryOutputStream mos (destData, true);
+        state.writeToStream (mos);
+    }
+}
+
+void DecapitoneAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+{
+    auto tree = juce::ValueTree::readFromData (data, (size_t) sizeInBytes);
+    if (tree.isValid())
+        apvts.replaceState (tree);
+}
+
+//==============================================================================
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+    return new DecapitoneAudioProcessor();
+}
