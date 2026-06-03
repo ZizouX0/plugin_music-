@@ -19,12 +19,11 @@
     branch-light and stateless makes them trivial to run inside an oversampled
     loop.
 
-    Harmonic content is sculpted three ways:
-      * curve hardness  -> how quickly the function saturates
-      * asymmetry       -> bias between the positive and negative halves, which
-                           is what actually generates *even* harmonics
-      * a touch of cubic shaping for the tube models, which is where the
-        musical "thickness" lives.
+    Alongside the transfer function, every model carries a `voicing()` profile:
+    a pre-emphasis filter pushed into the waveshaper and a complementary
+    de-emphasis afterwards (so the steady-state response stays roughly flat but
+    the harmonics are generated in a model-specific band), plus a makeup factor
+    that normalises the loudness of the five models against each other.
     =========================================================================== */
 
 namespace decap
@@ -39,6 +38,33 @@ enum class Model
     pentodeP,    // Pentode tube
     numModels
 };
+
+// Per-model tone shaping applied around the nonlinearity.
+struct Voicing
+{
+    float emphasisHz;   // centre of the pre/de-emphasis band
+    float emphasisQ;    // bandwidth of that band
+    float emphasisDb;   // pre boost (post applies the negative of this)
+    float makeupDb;     // loudness match so all five models sit at similar level
+};
+
+inline Voicing voicing (Model model) noexcept
+{
+    switch (model)
+    {
+        // Tape: a gentle upper-mid push so the highs hit tape compression first.
+        case Model::tapeA:    return { 3000.0f, 0.50f, 4.0f,  0.0f };
+        // EMI: presence-band emphasis keeps it articulate and bright.
+        case Model::emiE:     return { 2500.0f, 0.60f, 5.0f, -1.5f };
+        // Neve: low-mid emphasis -> thick, chesty console weight.
+        case Model::neveN:    return {  300.0f, 0.55f, 5.0f,  4.0f };
+        // Triode: broad mid emphasis for a vocal, forward tube sound.
+        case Model::triodeT:  return { 1200.0f, 0.45f, 4.0f, -0.5f };
+        // Pentode: upper-mid bite that makes the odd harmonics snarl.
+        case Model::pentodeP: return { 3500.0f, 0.70f, 6.0f,  3.0f };
+        default:              return { 1000.0f, 0.5f,  0.0f,  0.0f };
+    }
+}
 
 // A fast, smooth saturating core used as a building block by several models.
 inline float softClip (float x) noexcept

@@ -16,8 +16,13 @@ DecapLookAndFeel::DecapLookAndFeel()
     setColour (juce::ComboBox::backgroundColourId, kPanel);
     setColour (juce::ComboBox::textColourId, kText);
     setColour (juce::ComboBox::outlineColourId, kAccent.withAlpha (0.4f));
+    setColour (juce::ComboBox::arrowColourId, kAccent);
     setColour (juce::PopupMenu::backgroundColourId, kPanel);
+    setColour (juce::PopupMenu::textColourId, kText);
     setColour (juce::PopupMenu::highlightedBackgroundColourId, kAccent);
+    setColour (juce::TextButton::buttonColourId, kPanel);
+    setColour (juce::TextButton::textColourOnId, kAccent);
+    setColour (juce::TextButton::textColourOffId, kText);
     setColour (juce::ToggleButton::textColourId, kText);
 }
 
@@ -25,32 +30,71 @@ void DecapLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int wi
                                          int height, float sliderPos,
                                          float startAngle, float endAngle, juce::Slider&)
 {
-    const auto bounds = juce::Rectangle<int> (x, y, width, height).toFloat().reduced (6.0f);
+    auto bounds = juce::Rectangle<int> (x, y, width, height).toFloat().reduced (8.0f);
     const auto radius = juce::jmin (bounds.getWidth(), bounds.getHeight()) * 0.5f;
     const auto centre = bounds.getCentre();
     const auto angle  = startAngle + sliderPos * (endAngle - startAngle);
 
-    // Body
-    g.setColour (kPanel.brighter (0.08f));
+    // Drop shadow.
+    g.setColour (juce::Colours::black.withAlpha (0.45f));
+    g.fillEllipse (bounds.translated (0.0f, 2.5f));
+
+    // Tick ring.
+    const int ticks = 11;
+    for (int t = 0; t < ticks; ++t)
+    {
+        const float ta = startAngle + (float) t / (ticks - 1) * (endAngle - startAngle);
+        const float r1 = radius + 2.0f, r2 = radius + 6.0f;
+        const juce::Point<float> p1 (centre.x + std::sin (ta) * r1, centre.y - std::cos (ta) * r1);
+        const juce::Point<float> p2 (centre.x + std::sin (ta) * r2, centre.y - std::cos (ta) * r2);
+        g.setColour (kText.withAlpha (ta <= angle ? 0.9f : 0.25f));
+        g.drawLine ({ p1, p2 }, 1.4f);
+    }
+
+    // Brushed-metal body (radial gradient).
+    juce::ColourGradient grad (kPanel.brighter (0.25f), centre.x, bounds.getY(),
+                               kPanel.darker (0.4f),    centre.x, bounds.getBottom(), false);
+    g.setGradientFill (grad);
     g.fillEllipse (bounds);
-    g.setColour (juce::Colours::black.withAlpha (0.5f));
+    g.setColour (juce::Colours::black.withAlpha (0.6f));
     g.drawEllipse (bounds, 1.5f);
 
-    // Value arc
+    // Inset cap.
+    auto cap = bounds.reduced (radius * 0.34f);
+    g.setColour (kPanel.darker (0.2f));
+    g.fillEllipse (cap);
+
+    // Amber value arc.
     juce::Path arc;
-    const float arcR = radius - 2.0f;
+    const float arcR = radius + 4.0f;
     arc.addCentredArc (centre.x, centre.y, arcR, arcR, 0.0f, startAngle, angle, true);
     g.setColour (kAccent);
-    g.strokePath (arc, juce::PathStrokeType (2.5f, juce::PathStrokeType::curved,
+    g.strokePath (arc, juce::PathStrokeType (2.6f, juce::PathStrokeType::curved,
                                              juce::PathStrokeType::rounded));
 
-    // Pointer
+    // Pointer.
     juce::Path pointer;
-    const float pl = radius * 0.7f;
-    pointer.addRoundedRectangle (-1.5f, -pl, 3.0f, pl * 0.55f, 1.5f);
+    const float pl = radius * 0.78f;
+    pointer.addRoundedRectangle (-1.6f, -pl, 3.2f, pl * 0.5f, 1.6f);
     pointer.applyTransform (juce::AffineTransform::rotation (angle).translated (centre));
-    g.setColour (kText);
+    g.setColour (kAccent.brighter (0.3f));
     g.fillPath (pointer);
+}
+
+void DecapLookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton& b,
+                                         bool isHighlighted, bool /*isDown*/)
+{
+    auto bounds = b.getLocalBounds().toFloat().reduced (1.0f);
+    const bool on = b.getToggleState();
+
+    g.setColour (on ? kAccent.withAlpha (0.9f) : kPanel.brighter (isHighlighted ? 0.15f : 0.0f));
+    g.fillRoundedRectangle (bounds, 4.0f);
+    g.setColour (on ? kAccent.brighter (0.2f) : kAccent.withAlpha (0.35f));
+    g.drawRoundedRectangle (bounds, 4.0f, 1.2f);
+
+    g.setColour (on ? juce::Colours::black.withAlpha (0.85f) : kText);
+    g.setFont (juce::Font (12.0f, juce::Font::bold));
+    g.drawText (b.getButtonText(), bounds, juce::Justification::centred);
 }
 
 //==============================================================================
@@ -71,11 +115,50 @@ DecapitoneAudioProcessorEditor::DecapitoneAudioProcessorEditor (DecapitoneAudioP
     addAndMakeVisible (modelBox);
     modelAttach = std::make_unique<APVTS::ComboBoxAttachment> (proc.apvts, "model", modelBox);
 
-    punishButton.setClickingTogglesState (true);
-    addAndMakeVisible (punishButton);
+    for (auto* tb : { &punishButton, &steepButton, &thumpButton })
+    {
+        tb->setClickingTogglesState (true);
+        addAndMakeVisible (*tb);
+    }
     punishAttach = std::make_unique<APVTS::ButtonAttachment> (proc.apvts, "punish", punishButton);
+    steepAttach  = std::make_unique<APVTS::ButtonAttachment> (proc.apvts, "steep",  steepButton);
+    thumpAttach  = std::make_unique<APVTS::ButtonAttachment> (proc.apvts, "thump",  thumpButton);
 
-    setSize (560, 320);
+    // Preset selector, backed by host programs.
+    addAndMakeVisible (presetBox);
+    for (int i = 0; i < proc.getNumPrograms(); ++i)
+        presetBox.addItem (proc.getProgramName (i), i + 1);
+    presetBox.setJustificationType (juce::Justification::centred);
+    presetBox.onChange = [this]
+    {
+        const int idx = presetBox.getSelectedId() - 1;
+        if (idx >= 0 && idx != proc.getCurrentProgram())
+            proc.setCurrentProgram (idx);
+    };
+
+    addAndMakeVisible (prevPreset);
+    addAndMakeVisible (nextPreset);
+    prevPreset.onClick = [this]
+    {
+        const int n = proc.getNumPrograms();
+        proc.setCurrentProgram ((proc.getCurrentProgram() - 1 + n) % n);
+        refreshPresetBox();
+    };
+    nextPreset.onClick = [this]
+    {
+        const int n = proc.getNumPrograms();
+        proc.setCurrentProgram ((proc.getCurrentProgram() + 1) % n);
+        refreshPresetBox();
+    };
+    refreshPresetBox();
+
+    setResizable (true, true);
+    if (auto* c = getConstrainer())
+    {
+        c->setFixedAspectRatio (kDesignW / kDesignH);
+        setResizeLimits (480, 336, 1200, 840);
+    }
+    setSize ((int) kDesignW, (int) kDesignH);
     startTimerHz (30);
 }
 
@@ -84,11 +167,16 @@ DecapitoneAudioProcessorEditor::~DecapitoneAudioProcessorEditor()
     setLookAndFeel (nullptr);
 }
 
+void DecapitoneAudioProcessorEditor::refreshPresetBox()
+{
+    presetBox.setSelectedId (proc.getCurrentProgram() + 1, juce::dontSendNotification);
+}
+
 void DecapitoneAudioProcessorEditor::setUpKnob (LabeledKnob& k, const juce::String& id,
                                                 const juce::String& text)
 {
     k.slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
-    k.slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 64, 16);
+    k.slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 70, 16);
     addAndMakeVisible (k.slider);
 
     k.label.setText (text, juce::dontSendNotification);
@@ -103,23 +191,28 @@ void DecapitoneAudioProcessorEditor::setUpKnob (LabeledKnob& k, const juce::Stri
 //==============================================================================
 void DecapitoneAudioProcessorEditor::paint (juce::Graphics& g)
 {
+    // Scale all drawing so the UI looks identical at any window size.
+    const float s = (float) getWidth() / kDesignW;
     g.fillAll (kBg);
+    g.addTransform (juce::AffineTransform::scale (s));
 
-    // Header bar
-    auto header = getLocalBounds().removeFromTop (52).toFloat();
+    auto full = juce::Rectangle<float> (0, 0, kDesignW, kDesignH);
+
+    // Header bar.
+    auto header = full.removeFromTop (56);
     g.setColour (kPanel);
     g.fillRect (header);
     g.setColour (kAccent);
-    g.setFont (juce::Font (26.0f, juce::Font::bold));
-    g.drawText ("DECAPITONE", header.reduced (16, 0).removeFromLeft (260),
+    g.setFont (juce::Font (28.0f, juce::Font::bold));
+    g.drawText ("DECAPITONE", header.reduced (18, 0).removeFromLeft (280),
                 juce::Justification::centredLeft);
-    g.setColour (kText.withAlpha (0.6f));
+    g.setColour (kText.withAlpha (0.55f));
     g.setFont (juce::Font (12.0f));
-    g.drawText ("analog saturation", header.reduced (16, 0),
+    g.drawText ("analog saturation", header.withTrimmedRight (150).reduced (18, 0),
                 juce::Justification::centredRight);
 
-    // Output meter (right edge)
-    auto meterArea = getLocalBounds().toFloat().removeFromRight (18).reduced (4, 60);
+    // Output meter (right edge).
+    auto meterArea = juce::Rectangle<float> (kDesignW - 22, 70, 12, kDesignH - 90);
     g.setColour (kPanel);
     g.fillRoundedRectangle (meterArea, 3.0f);
     const float db = juce::Decibels::gainToDecibels (meterLevel, -60.0f);
@@ -131,20 +224,37 @@ void DecapitoneAudioProcessorEditor::paint (juce::Graphics& g)
 
 void DecapitoneAudioProcessorEditor::resized()
 {
-    auto area = getLocalBounds().reduced (16);
-    area.removeFromTop (52);          // header
-    area.removeFromRight (24);        // meter gutter
+    // Work in design coordinates, then scale the whole component tree.
+    const float s = (float) getWidth() / kDesignW;
 
-    // Top row: style selector + punish.
-    auto top = area.removeFromTop (40);
-    modelBox.setBounds (top.removeFromLeft (220).reduced (0, 6));
-    top.removeFromLeft (16);
-    punishButton.setBounds (top.removeFromLeft (120).reduced (0, 4));
+    juce::Rectangle<int> area (0, 0, (int) kDesignW, (int) kDesignH);
+    area.reduce (16, 16);
+    area.removeFromTop (40);          // header
+    area.removeFromRight (20);        // meter gutter
 
-    area.removeFromTop (12);
+    // Preset row.
+    auto presetRow = area.removeFromTop (28);
+    prevPreset.setBounds (presetRow.removeFromLeft (28));
+    presetRow.removeFromLeft (4);
+    presetBox.setBounds (presetRow.removeFromLeft (200));
+    presetRow.removeFromLeft (4);
+    nextPreset.setBounds (presetRow.removeFromLeft (28));
+
+    area.removeFromTop (10);
+
+    // Style + mode toggles row.
+    auto top = area.removeFromTop (34);
+    modelBox.setBounds (top.removeFromLeft (180).reduced (0, 3));
+    top.removeFromLeft (12);
+    auto toggle = [&top] (juce::ToggleButton& b) { b.setBounds (top.removeFromLeft (84).reduced (2, 3)); top.removeFromLeft (6); };
+    toggle (punishButton);
+    toggle (steepButton);
+    toggle (thumpButton);
+
+    area.removeFromTop (14);
 
     // Two rows of three knobs.
-    auto knobRow = [] (juce::Rectangle<int> r, LabeledKnob& k)
+    auto knobCell = [] (juce::Rectangle<int> r, LabeledKnob& k)
     {
         k.label.setBounds (r.removeFromTop (16));
         k.slider.setBounds (r);
@@ -154,19 +264,26 @@ void DecapitoneAudioProcessorEditor::resized()
     auto row1 = area.removeFromTop (area.getHeight() / 2);
     auto row2 = area;
 
-    knobRow (row1.removeFromLeft (knobW).reduced (6), driveKnob);
-    knobRow (row1.removeFromLeft (knobW).reduced (6), toneKnob);
-    knobRow (row1.removeFromLeft (knobW).reduced (6), mixKnob);
+    knobCell (row1.removeFromLeft (knobW).reduced (6), driveKnob);
+    knobCell (row1.removeFromLeft (knobW).reduced (6), toneKnob);
+    knobCell (row1.removeFromLeft (knobW).reduced (6), mixKnob);
 
-    knobRow (row2.removeFromLeft (knobW).reduced (6), lowCutKnob);
-    knobRow (row2.removeFromLeft (knobW).reduced (6), highCutKnob);
-    knobRow (row2.removeFromLeft (knobW).reduced (6), outputKnob);
+    knobCell (row2.removeFromLeft (knobW).reduced (6), lowCutKnob);
+    knobCell (row2.removeFromLeft (knobW).reduced (6), highCutKnob);
+    knobCell (row2.removeFromLeft (knobW).reduced (6), outputKnob);
+
+    // Apply the global scale so everything tracks the window size.
+    const auto t = juce::AffineTransform::scale (s);
+    for (auto* c : getChildren())
+        c->setTransform (t);
 }
 
 void DecapitoneAudioProcessorEditor::timerCallback()
 {
     const float target = proc.outputLevel.load();
-    // Simple ballistic smoothing for a nicer meter.
     meterLevel = target > meterLevel ? target : meterLevel * 0.85f + target * 0.15f;
+    // The preset box can drift out of sync if the host changes program; keep it honest.
+    if (presetBox.getSelectedId() - 1 != proc.getCurrentProgram())
+        refreshPresetBox();
     repaint();
 }

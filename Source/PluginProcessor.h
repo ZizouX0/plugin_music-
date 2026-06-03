@@ -8,11 +8,14 @@
 
     Signal flow (per channel, inside 4x oversampling around the nonlinearity):
 
-        in -> [low cut HPF] -> [tone tilt] -> drive gain ->
-              [ STYLE WAVESHAPER ] -> [high cut LPF] ->
-              auto-gain comp -> output gain -> [dry/wet mix] -> out
+        in -> [low cut HPF (+steep 4th-order)] -> [tone tilt] ->
+              [per-model PRE-emphasis] -> drive gain ->
+              [ STYLE WAVESHAPER ] * makeup -> [per-model DE-emphasis] ->
+              [high cut LPF] -> [Thump low shelf] ->
+              mix-aware auto-gain -> output gain -> [dry/wet mix] -> out
 
     "Punish" multiplies the effective drive for extreme, broken textures.
+    "Steep" doubles the low-cut slope; "Thump" adds low-end weight on output.
     =========================================================================== */
 
 class DecapitoneAudioProcessor : public juce::AudioProcessor
@@ -35,10 +38,10 @@ public:
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
 
-    int getNumPrograms() override { return 1; }
-    int getCurrentProgram() override { return 0; }
-    void setCurrentProgram (int) override {}
-    const juce::String getProgramName (int) override { return {}; }
+    int getNumPrograms() override;
+    int getCurrentProgram() override { return currentProgram; }
+    void setCurrentProgram (int index) override;
+    const juce::String getProgramName (int index) override;
     void changeProgramName (int, const juce::String&) override {}
 
     void getStateInformation (juce::MemoryBlock& destData) override;
@@ -59,12 +62,17 @@ private:
 
     // Per-channel filter state.
     using Filter = juce::dsp::IIR::Filter<float>;
-    std::array<Filter, 2> lowCut;     // high-pass
+    std::array<Filter, 2> lowCut;     // high-pass (1st stage)
+    std::array<Filter, 2> lowCut2;    // high-pass (2nd stage, engaged by "Steep")
     std::array<Filter, 2> highCut;    // low-pass
     std::array<Filter, 2> toneLow;    // tilt: low shelf
     std::array<Filter, 2> toneHigh;   // tilt: high shelf
+    std::array<Filter, 2> preEmph;    // per-model pre-emphasis (peaking)
+    std::array<Filter, 2> postEmph;   // per-model de-emphasis (peaking, inverse)
+    std::array<Filter, 2> thump;      // low-shelf weight on output
 
     double currentSampleRate { 44100.0 };
+    int    currentProgram    { 0 };
 
     // Smoothed values to avoid zipper noise on automation.
     juce::SmoothedValue<float> driveSmoothed, mixSmoothed, outputSmoothed;

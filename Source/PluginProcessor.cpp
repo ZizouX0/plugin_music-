@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "dsp/Presets.h"
 
 namespace
 {
@@ -10,6 +11,8 @@ namespace
     constexpr auto pLowCut  = "lowcut";
     constexpr auto pHighCut = "highcut";
     constexpr auto pPunish  = "punish";
+    constexpr auto pSteep   = "steep";
+    constexpr auto pThump   = "thump";
     constexpr auto pMix     = "mix";
     constexpr auto pOutput  = "output";
 }
@@ -58,6 +61,12 @@ DecapitoneAudioProcessor::createParameterLayout()
     layout.add (std::make_unique<AudioParameterBool>(
         ParameterID { pPunish, 1 }, "Punish", false));
 
+    layout.add (std::make_unique<AudioParameterBool>(
+        ParameterID { pSteep, 1 }, "Steep", false));
+
+    layout.add (std::make_unique<AudioParameterBool>(
+        ParameterID { pThump, 1 }, "Thump", false));
+
     layout.add (std::make_unique<AudioParameterFloat>(
         ParameterID { pMix, 1 }, "Mix",
         NormalisableRange<float> (0.0f, 100.0f, 0.1f), 100.0f,
@@ -81,15 +90,18 @@ void DecapitoneAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
         juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR);
     oversampler->initProcessing (static_cast<size_t> (samplesPerBlock));
 
+    // Report the oversampler's latency so the host can compensate (PDC).
+    setLatencySamples (juce::roundToInt (oversampler->getLatencyInSamples()));
+
     juce::dsp::ProcessSpec spec;
     spec.sampleRate       = sampleRate * oversampler->getOversamplingFactor();
     spec.maximumBlockSize = static_cast<juce::uint32> (samplesPerBlock) * oversampler->getOversamplingFactor();
     spec.numChannels      = 1;
 
-    for (auto& f : lowCut)   f.prepare (spec);
-    for (auto& f : highCut)  f.prepare (spec);
-    for (auto& f : toneLow)  f.prepare (spec);
-    for (auto& f : toneHigh) f.prepare (spec);
+    for (auto* bank : { &lowCut, &lowCut2, &highCut, &toneLow, &toneHigh,
+                        &preEmph, &postEmph, &thump })
+        for (auto& f : *bank)
+            f.prepare (spec);
 
     driveSmoothed .reset (sampleRate, 0.02);
     mixSmoothed   .reset (sampleRate, 0.02);
@@ -102,9 +114,11 @@ void DecapitoneAudioProcessor::updateFilters()
 {
     const double osRate = currentSampleRate * (oversampler ? oversampler->getOversamplingFactor() : 1);
 
-    const float lc   = apvts.getRawParameterValue (pLowCut)->load();
-    const float hc   = apvts.getRawParameterValue (pHighCut)->load();
-    const float tone = apvts.getRawParameterValue (pTone)->load();
+    const float lc    = apvts.getRawParameterValue (pLowCut)->load();
+    const float hc    = apvts.getRawParameterValue (pHighCut)->load();
+    const float tone  = apvts.getRawParameterValue (pTone)->load();
+    const auto  model = static_cast<decap::Model> ((int) apvts.getRawParameterValue (pModel)->load());
+    const auto  voice = decap::voicing (model);
 
     auto hp = juce::dsp::IIR::Coefficients<float>::makeHighPass (osRate, lc);
     auto lp = juce::dsp::IIR::Coefficients<float>::makeLowPass  (osRate, hc);
@@ -114,10 +128,27 @@ void DecapitoneAudioProcessor::updateFilters()
     auto ls = juce::dsp::IIR::Coefficients<float>::makeLowShelf  (osRate, 250.0f,  0.5f, juce::Decibels::decibelsToGain (-tiltDb));
     auto hs = juce::dsp::IIR::Coefficients<float>::makeHighShelf (osRate, 4000.0f, 0.5f, juce::Decibels::decibelsToGain ( tiltDb));
 
+    // Per-model emphasis: pre boosts the band into the waveshaper, post undoes
+    // it so the net linear response is flat but the harmonics are voiced.
+    auto preC  = juce::dsp::IIR::Coefficients<float>::makePeakFilter (
+                    osRate, voice.emphasisHz, voice.emphasisQ,
+                    juce::Decibels::decibelsToGain ( voice.emphasisDb));
+    auto postC = juce::dsp::IIR::Coefficients<float>::makePeakFilter (
+                    osRate, voice.emphasisHz, voice.emphasisQ,
+                    juce::Decibels::decibelsToGain (-voice.emphasisDb));
+
+    // Thump: fixed low-shelf weight added on output when engaged.
+    auto thC = juce::dsp::IIR::Coefficients<float>::makeLowShelf (
+                    osRate, 110.0f, 0.7f, juce::Decibels::decibelsToGain (6.0f));
+
     for (auto& f : lowCut)   *f.coefficients = *hp;
+    for (auto& f : lowCut2)  *f.coefficients = *hp;
     for (auto& f : highCut)  *f.coefficients = *lp;
     for (auto& f : toneLow)  *f.coefficients = *ls;
     for (auto& f : toneHigh) *f.coefficients = *hs;
+    for (auto& f : preEmph)  *f.coefficients = *preC;
+    for (auto& f : postEmph) *f.coefficients = *postC;
+    for (auto& f : thump)    *f.coefficients = *thC;
 }
 
 //==============================================================================
@@ -142,14 +173,21 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     const auto model    = static_cast<decap::Model> ((int) apvts.getRawParameterValue (pModel)->load());
     const bool punish   = apvts.getRawParameterValue (pPunish)->load() > 0.5f;
+    const bool steep    = apvts.getRawParameterValue (pSteep)->load()  > 0.5f;
+    const bool useThump = apvts.getRawParameterValue (pThump)->load()  > 0.5f;
     const float driveRaw = apvts.getRawParameterValue (pDrive)->load();
     const float mixRaw   = apvts.getRawParameterValue (pMix)->load() * 0.01f;
     const float outRaw   = juce::Decibels::decibelsToGain (apvts.getRawParameterValue (pOutput)->load());
 
     // Map 0..10 to a usable gain. Punish opens up a far hotter range.
     const float driveGain = juce::Decibels::decibelsToGain (driveRaw * (punish ? 6.0f : 3.0f));
-    // Auto-gain: compensate roughly for the drive so levels stay sane.
-    const float autoComp  = 1.0f / std::sqrt (1.0f + driveGain * 0.25f);
+
+    // Mix-aware auto-gain: tame the wet path so its loudness stays close to the
+    // dry signal regardless of drive, then apply the per-model loudness match.
+    // Because the wet is normalised *before* the dry/wet blend, the perceived
+    // level holds steady as you sweep Mix.
+    const float makeup   = juce::Decibels::decibelsToGain (decap::voicing (model).makeupDb);
+    const float autoComp = makeup / std::sqrt (1.0f + driveGain * 0.25f);
 
     driveSmoothed .setTargetValue (driveGain);
     mixSmoothed   .setTargetValue (mixRaw);
@@ -172,14 +210,27 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         {
             float x = data[i];
 
-            x = lowCut[ch] .processSample (x);
-            x = toneLow[ch].processSample (x);
+            // Low cut (Steep engages a second stage for a 4th-order slope).
+            x = lowCut[ch].processSample (x);
+            if (steep)
+                x = lowCut2[ch].processSample (x);
+
+            // Global tilt tone.
+            x = toneLow[ch] .processSample (x);
             x = toneHigh[ch].processSample (x);
+
+            // Per-model pre-emphasis -> drive -> waveshaper -> de-emphasis.
+            x = preEmph[ch].processSample (x);
 
             const float d = driveSmoothed.getNextValue();
             x = decap::shape (x * d, model) * autoComp;
 
+            x = postEmph[ch].processSample (x);
+
+            // High cut, then optional low-end Thump.
             x = highCut[ch].processSample (x);
+            if (useThump)
+                x = thump[ch].processSample (x);
 
             data[i] = x;
         }
@@ -205,6 +256,39 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     }
 
     outputLevel.store (peak);
+}
+
+//==============================================================================
+// Presets are exposed as host programs and recalled cleanly: every parameter
+// is reset to its default first, then the preset's named values are applied.
+int DecapitoneAudioProcessor::getNumPrograms()
+{
+    return (int) decap::factoryPresets().size();
+}
+
+void DecapitoneAudioProcessor::setCurrentProgram (int index)
+{
+    const auto& presets = decap::factoryPresets();
+    if (! juce::isPositiveAndBelow (index, (int) presets.size()))
+        return;
+
+    currentProgram = index;
+
+    for (auto* p : getParameters())
+        if (auto* rp = dynamic_cast<juce::RangedAudioParameter*> (p))
+            rp->setValueNotifyingHost (rp->getDefaultValue());
+
+    for (const auto& [id, value] : presets[(size_t) index].values)
+        if (auto* rp = apvts.getParameter (id))
+            rp->setValueNotifyingHost (rp->convertTo0to1 (value));
+}
+
+const juce::String DecapitoneAudioProcessor::getProgramName (int index)
+{
+    const auto& presets = decap::factoryPresets();
+    if (juce::isPositiveAndBelow (index, (int) presets.size()))
+        return presets[(size_t) index].name;
+    return {};
 }
 
 //==============================================================================

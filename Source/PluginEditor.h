@@ -4,14 +4,21 @@
 #include "PluginProcessor.h"
 
 //==============================================================================
-// A compact dark LookAndFeel that draws chunky analog-style rotary knobs.
+// A dark, "skinned" LookAndFeel that draws polished analog-style rotary knobs
+// (drop shadow, brushed-metal gradient, tick ring, amber value arc) plus tidy
+// toggle buttons - all vector-drawn so there are no external image assets.
 class DecapLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     DecapLookAndFeel();
+
     void drawRotarySlider (juce::Graphics&, int x, int y, int width, int height,
                            float sliderPos, float rotaryStartAngle,
                            float rotaryEndAngle, juce::Slider&) override;
+
+    void drawToggleButton (juce::Graphics&, juce::ToggleButton&,
+                           bool shouldDrawButtonAsHighlighted,
+                           bool shouldDrawButtonAsDown) override;
 };
 
 //==============================================================================
@@ -27,6 +34,7 @@ public:
 
 private:
     void timerCallback() override;
+    void refreshPresetBox();
 
     using APVTS = juce::AudioProcessorValueTreeState;
 
@@ -48,9 +56,19 @@ private:
     std::unique_ptr<APVTS::ComboBoxAttachment> modelAttach;
 
     juce::ToggleButton punishButton { "PUNISH" };
-    std::unique_ptr<APVTS::ButtonAttachment> punishAttach;
+    juce::ToggleButton steepButton  { "STEEP" };
+    juce::ToggleButton thumpButton  { "THUMP" };
+    std::unique_ptr<APVTS::ButtonAttachment> punishAttach, steepAttach, thumpAttach;
+
+    // Preset selector (driven via host programs).
+    juce::ComboBox   presetBox;
+    juce::TextButton prevPreset { "<" }, nextPreset { ">" };
 
     float meterLevel { 0.0f };
+
+    // Reference design size; the window scales from this while keeping ratio.
+    static constexpr float kDesignW = 600.0f;
+    static constexpr float kDesignH = 420.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DecapitoneAudioProcessorEditor)
 };
