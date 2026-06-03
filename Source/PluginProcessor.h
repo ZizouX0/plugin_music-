@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "dsp/Saturation.h"
+#include "dsp/CaptureProfile.h"
 
 /*  ===========================================================================
     Decapitone - an analog saturation / distortion processor.
@@ -55,6 +56,14 @@ public:
     // Lightweight output level for a GUI meter (atomic, read by the editor).
     std::atomic<float> outputLevel { 0.0f };
 
+    // --- Capture engine (model "C") -----------------------------------------
+    // Load a profile.json captured from a real device. Real-time safe: the new
+    // profile is parsed on the message thread into an inactive slot, then the
+    // active index is flipped atomically for the audio thread to pick up.
+    bool loadCaptureProfile (const juce::File& file);
+    juce::String getCaptureName() const;          // for the GUI
+    juce::File   getCaptureFile() const { return captureFile; }
+
 private:
     static constexpr int oversampleFactor = 2; // 2 -> 4x oversampling
 
@@ -70,6 +79,14 @@ private:
     std::array<Filter, 2> preEmph;    // per-model pre-emphasis (peaking)
     std::array<Filter, 2> postEmph;   // per-model de-emphasis (peaking, inverse)
     std::array<Filter, 2> thump;      // low-shelf weight on output
+
+    // Capture engine state.
+    std::array<std::shared_ptr<decap::CaptureProfile>, 2> captureSlots;
+    std::atomic<int> activeCaptureSlot { 0 };
+    std::array<juce::dsp::FIR::Filter<float>, 2> captureEq; // per-channel EQ FIR
+    juce::dsp::FIR::Coefficients<float>::Ptr captureEqCoeffs;
+    juce::File captureFile;
+    void rebuildCaptureEq (const decap::CaptureProfile& p);
 
     double currentSampleRate { 44100.0 };
     int    currentProgram    { 0 };

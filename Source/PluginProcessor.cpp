@@ -40,7 +40,7 @@ DecapitoneAudioProcessor::createParameterLayout()
 
     layout.add (std::make_unique<AudioParameterChoice>(
         ParameterID { pModel, 1 }, "Style",
-        StringArray { "A - Tape", "E - EMI", "N - Neve", "T - Triode", "P - Pentode" },
+        StringArray { "A - Tape", "E - EMI", "N - Neve", "T - Triode", "P - Pentode", "C - Capture" },
         0));
 
     // Tone: -1 dark .. +1 bright tilt EQ, 0 = neutral.
@@ -102,6 +102,16 @@ void DecapitoneAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
                         &preEmph, &postEmph, &thump })
         for (auto& f : *bank)
             f.prepare (spec);
+
+    juce::dsp::ProcessSpec monoSpec { spec.sampleRate, spec.maximumBlockSize, 1 };
+    for (auto& f : captureEq)
+        f.prepare (monoSpec);
+
+    // If a capture is already loaded (e.g. restored from state), design its EQ
+    // for this (oversampled) rate.
+    if (auto p = captureSlots[(size_t) activeCaptureSlot.load()])
+        if (p->loaded)
+            rebuildCaptureEq (*p);
 
     driveSmoothed .reset (sampleRate, 0.02);
     mixSmoothed   .reset (sampleRate, 0.02);
@@ -197,6 +207,13 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     juce::AudioBuffer<float> dry;
     dry.makeCopyOf (buffer);
 
+    // Capture engine: pick up the active profile once per block (RT-safe).
+    const bool useCapture = (model == decap::Model::captureC);
+    decap::CaptureProfile* cap = useCapture ? captureSlots[(size_t) activeCaptureSlot.load()].get() : nullptr;
+    const bool capReady = useCapture && cap != nullptr && cap->loaded;
+    const bool capHasEq = capReady && captureEqCoeffs != nullptr;
+    const float captureInGain = driveRaw / 3.0f;  // Drive acts as input trim in C mode
+
     juce::dsp::AudioBlock<float> block (buffer);
     auto osBlock = oversampler->processSamplesUp (block);
 
@@ -219,13 +236,25 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             x = toneLow[ch] .processSample (x);
             x = toneHigh[ch].processSample (x);
 
-            // Per-model pre-emphasis -> drive -> waveshaper -> de-emphasis.
-            x = preEmph[ch].processSample (x);
-
-            const float d = driveSmoothed.getNextValue();
-            x = decap::shape (x * d, model) * autoComp;
-
-            x = postEmph[ch].processSample (x);
+            if (useCapture)
+            {
+                // Measured static curve, then the measured tone EQ.
+                if (capReady)
+                {
+                    x = cap->lookup (x * captureInGain);
+                    if (capHasEq)
+                        x = captureEq[ch].processSample (x);
+                }
+                // (no profile loaded -> pass through cleanly)
+            }
+            else
+            {
+                // Per-model pre-emphasis -> drive -> waveshaper -> de-emphasis.
+                x = preEmph[ch].processSample (x);
+                const float d = driveSmoothed.getNextValue();
+                x = decap::shape (x * d, model) * autoComp;
+                x = postEmph[ch].processSample (x);
+            }
 
             // High cut, then optional low-end Thump.
             x = highCut[ch].processSample (x);
@@ -292,6 +321,50 @@ const juce::String DecapitoneAudioProcessor::getProgramName (int index)
 }
 
 //==============================================================================
+// Capture engine.
+bool DecapitoneAudioProcessor::loadCaptureProfile (const juce::File& file)
+{
+    auto profile = std::make_shared<decap::CaptureProfile>();
+    if (! decap::CaptureProfile::fromFile (file, *profile))
+        return false;
+
+    rebuildCaptureEq (*profile);
+
+    // Publish into the inactive slot, then flip the active index atomically.
+    const int inactive = activeCaptureSlot.load() ^ 1;
+    captureSlots[(size_t) inactive] = profile;
+    activeCaptureSlot.store (inactive);
+    captureFile = file;
+    return true;
+}
+
+void DecapitoneAudioProcessor::rebuildCaptureEq (const decap::CaptureProfile& p)
+{
+    const double osRate = currentSampleRate * (oversampler ? oversampler->getOversamplingFactor() : 1);
+    auto taps = p.buildEqFIR (osRate, 257);
+    if (taps.empty())
+    {
+        captureEqCoeffs = nullptr;
+        return;
+    }
+
+    captureEqCoeffs = new juce::dsp::FIR::Coefficients<float> (taps.data(), taps.size());
+    for (auto& f : captureEq)
+    {
+        f.coefficients = captureEqCoeffs;
+        f.reset();
+    }
+}
+
+juce::String DecapitoneAudioProcessor::getCaptureName() const
+{
+    if (auto p = captureSlots[(size_t) activeCaptureSlot.load()])
+        if (p->loaded)
+            return p->name;
+    return "(no capture loaded)";
+}
+
+//==============================================================================
 juce::AudioProcessorEditor* DecapitoneAudioProcessor::createEditor()
 {
     return new DecapitoneAudioProcessorEditor (*this);
@@ -301,6 +374,8 @@ void DecapitoneAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     if (auto state = apvts.copyState(); state.isValid())
     {
+        // Remember which capture profile was loaded so it returns on reload.
+        state.setProperty ("captureFile", captureFile.getFullPathName(), nullptr);
         juce::MemoryOutputStream mos (destData, true);
         state.writeToStream (mos);
     }
@@ -310,7 +385,12 @@ void DecapitoneAudioProcessor::setStateInformation (const void* data, int sizeIn
 {
     auto tree = juce::ValueTree::readFromData (data, (size_t) sizeInBytes);
     if (tree.isValid())
+    {
+        const auto path = tree.getProperty ("captureFile", "").toString();
         apvts.replaceState (tree);
+        if (path.isNotEmpty())
+            loadCaptureProfile (juce::File (path));
+    }
 }
 
 //==============================================================================

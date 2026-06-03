@@ -18,6 +18,22 @@ output trim.
 | **N** | Neve 1057 input | Creamy, thick even harmonics |
 | **T** | Triode tube | Asymmetric, fat 2nd harmonic |
 | **P** | Pentode tube | Aggressive, buzzy odd harmonics |
+| **C** | **Capture** | Reproduces a *measured* device (see below) |
+
+## Capture mode — sound exactly like another device
+
+Style **C** plays back a **captured profile** of a real saturator (e.g.
+Decapitator at a chosen Style/Drive). You render a probe signal through the
+target once, and the toolchain measures its exact transfer curve + EQ. This is
+the same approach as amp-capture tech (Kemper / Neural Amp Modeler) — it
+profiles the *sound*, copying no code. Full guide: **[CAPTURE.md](CAPTURE.md)**.
+
+```bash
+python3 tools/make_probe.py probe.wav        # 1. make the probe
+# 2. render probe.wav through the target device -> captured.wav
+python3 tools/extract_profile.py probe.wav captured.wav profile.json
+python3 tools/selftest.py                    # validate the pipeline (PASS)
+```
 
 ## Controls
 

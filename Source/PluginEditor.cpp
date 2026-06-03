@@ -110,7 +110,7 @@ DecapitoneAudioProcessorEditor::DecapitoneAudioProcessorEditor (DecapitoneAudioP
     setUpKnob (mixKnob,     "mix",     "MIX");
     setUpKnob (outputKnob,  "output",  "OUTPUT");
 
-    modelBox.addItemList ({ "A - Tape", "E - EMI", "N - Neve", "T - Triode", "P - Pentode" }, 1);
+    modelBox.addItemList ({ "A - Tape", "E - EMI", "N - Neve", "T - Triode", "P - Pentode", "C - Capture" }, 1);
     modelBox.setJustificationType (juce::Justification::centred);
     addAndMakeVisible (modelBox);
     modelAttach = std::make_unique<APVTS::ComboBoxAttachment> (proc.apvts, "model", modelBox);
@@ -151,6 +151,31 @@ DecapitoneAudioProcessorEditor::DecapitoneAudioProcessorEditor (DecapitoneAudioP
         refreshPresetBox();
     };
     refreshPresetBox();
+
+    // Capture loader: opens a profile.json produced by tools/extract_profile.py.
+    addAndMakeVisible (loadCaptureButton);
+    addAndMakeVisible (captureLabel);
+    captureLabel.setColour (juce::Label::textColourId, juce::Colour (0xffd98c3a));
+    captureLabel.setFont (juce::Font (12.0f, juce::Font::italic));
+    captureLabel.setJustificationType (juce::Justification::centredLeft);
+    captureLabel.setText (proc.getCaptureName(), juce::dontSendNotification);
+    loadCaptureButton.onClick = [this]
+    {
+        chooser = std::make_unique<juce::FileChooser> (
+            "Load a capture profile", juce::File(), "*.json");
+        chooser->launchAsync (juce::FileBrowserComponent::openMode
+                            | juce::FileBrowserComponent::canSelectFiles,
+            [this] (const juce::FileChooser& fc)
+            {
+                const auto f = fc.getResult();
+                if (f == juce::File()) return;
+                if (proc.loadCaptureProfile (f))
+                    captureLabel.setText ("C: " + proc.getCaptureName(), juce::dontSendNotification);
+                else
+                    captureLabel.setText ("load failed - not a capture profile",
+                                          juce::dontSendNotification);
+            });
+    };
 
     setResizable (true, true);
     if (auto* c = getConstrainer())
@@ -251,7 +276,15 @@ void DecapitoneAudioProcessorEditor::resized()
     toggle (steepButton);
     toggle (thumpButton);
 
-    area.removeFromTop (14);
+    area.removeFromTop (8);
+
+    // Capture row: load button + loaded-profile name.
+    auto capRow = area.removeFromTop (24);
+    loadCaptureButton.setBounds (capRow.removeFromLeft (120).reduced (0, 2));
+    capRow.removeFromLeft (10);
+    captureLabel.setBounds (capRow);
+
+    area.removeFromTop (10);
 
     // Two rows of three knobs.
     auto knobCell = [] (juce::Rectangle<int> r, LabeledKnob& k)

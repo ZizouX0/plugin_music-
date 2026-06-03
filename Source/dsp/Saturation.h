@@ -36,6 +36,7 @@ enum class Model
     neveN,       // Neve 1057
     triodeT,     // Triode tube
     pentodeP,    // Pentode tube
+    captureC,    // loaded capture profile (LUT waveshaper)
     numModels
 };
 

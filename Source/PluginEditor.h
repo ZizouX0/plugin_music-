@@ -64,11 +64,16 @@ private:
     juce::ComboBox   presetBox;
     juce::TextButton prevPreset { "<" }, nextPreset { ">" };
 
+    // Capture engine UI.
+    juce::TextButton loadCaptureButton { "LOAD CAPTURE" };
+    juce::Label      captureLabel;
+    std::unique_ptr<juce::FileChooser> chooser;
+
     float meterLevel { 0.0f };
 
     // Reference design size; the window scales from this while keeping ratio.
     static constexpr float kDesignW = 600.0f;
-    static constexpr float kDesignH = 420.0f;
+    static constexpr float kDesignH = 470.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DecapitoneAudioProcessorEditor)
 };
