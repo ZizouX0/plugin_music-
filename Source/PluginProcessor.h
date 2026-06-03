@@ -39,11 +39,19 @@ public:
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
 
-    int getNumPrograms() override;
-    int getCurrentProgram() override { return currentProgram; }
-    void setCurrentProgram (int index) override;
-    const juce::String getProgramName (int index) override;
+    int getNumPrograms() override { return 1; }
+    int getCurrentProgram() override { return 0; }
+    void setCurrentProgram (int) override {}
+    const juce::String getProgramName (int) override { return {}; }
     void changeProgramName (int, const juce::String&) override {}
+
+    // Factory presets are managed by the plugin's own UI, NOT exposed as host
+    // programs: doing the latter lets a host reset parameters underneath state
+    // restoration. These are driven directly by the editor instead.
+    int          getNumFactoryPresets() const;
+    int          getCurrentPreset() const { return currentPreset; }
+    void         applyPreset (int index);
+    juce::String getFactoryPresetName (int index) const;
 
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
@@ -89,7 +97,7 @@ private:
     void rebuildCaptureEq (const decap::CaptureProfile& p);
 
     double currentSampleRate { 44100.0 };
-    int    currentProgram    { 0 };
+    int    currentPreset     { 0 };
 
     // Smoothed values to avoid zipper noise on automation.
     juce::SmoothedValue<float> driveSmoothed, mixSmoothed, outputSmoothed;

@@ -212,7 +212,16 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     decap::CaptureProfile* cap = useCapture ? captureSlots[(size_t) activeCaptureSlot.load()].get() : nullptr;
     const bool capReady = useCapture && cap != nullptr && cap->loaded;
     const bool capHasEq = capReady && captureEqCoeffs != nullptr;
-    const float captureInGain = driveRaw / 3.0f;  // Drive acts as input trim in C mode
+
+    // Single capture: Drive is input trim around the captured point.
+    // Capture SET: Drive moves along the captured axis, blending two curves.
+    const bool capIsSet = capReady && cap->isSet();
+    int   capI0 = 0, capI1 = 0;
+    float capFrac = 0.0f;
+    if (capIsSet)
+        cap->bracket (juce::jmap (driveRaw, 0.0f, 10.0f, cap->minDrive(), cap->maxDrive()),
+                      capI0, capI1, capFrac);
+    const float captureInGain = capIsSet ? 1.0f : (driveRaw / 3.0f);
 
     juce::dsp::AudioBlock<float> block (buffer);
     auto osBlock = oversampler->processSamplesUp (block);
@@ -238,10 +247,12 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
             if (useCapture)
             {
-                // Measured static curve, then the measured tone EQ.
+                // Measured static curve (blended across Drive for a set),
+                // then the measured tone EQ.
                 if (capReady)
                 {
-                    x = cap->lookup (x * captureInGain);
+                    x = capIsSet ? cap->lookupBlend (x * captureInGain, capI0, capI1, capFrac)
+                                 : cap->lookup (x * captureInGain);
                     if (capHasEq)
                         x = captureEq[ch].processSample (x);
                 }
@@ -288,20 +299,22 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 }
 
 //==============================================================================
-// Presets are exposed as host programs and recalled cleanly: every parameter
-// is reset to its default first, then the preset's named values are applied.
-int DecapitoneAudioProcessor::getNumPrograms()
+// Factory presets - recalled cleanly: every parameter is reset to its default
+// first, then the preset's named values are applied. Driven by the editor, not
+// the host program interface (exposing presets as programs lets a host reset
+// parameters underneath state restoration).
+int DecapitoneAudioProcessor::getNumFactoryPresets() const
 {
     return (int) decap::factoryPresets().size();
 }
 
-void DecapitoneAudioProcessor::setCurrentProgram (int index)
+void DecapitoneAudioProcessor::applyPreset (int index)
 {
     const auto& presets = decap::factoryPresets();
     if (! juce::isPositiveAndBelow (index, (int) presets.size()))
         return;
 
-    currentProgram = index;
+    currentPreset = index;
 
     for (auto* p : getParameters())
         if (auto* rp = dynamic_cast<juce::RangedAudioParameter*> (p))
@@ -312,7 +325,7 @@ void DecapitoneAudioProcessor::setCurrentProgram (int index)
             rp->setValueNotifyingHost (rp->convertTo0to1 (value));
 }
 
-const juce::String DecapitoneAudioProcessor::getProgramName (int index)
+juce::String DecapitoneAudioProcessor::getFactoryPresetName (int index) const
 {
     const auto& presets = decap::factoryPresets();
     if (juce::isPositiveAndBelow (index, (int) presets.size()))

@@ -124,30 +124,30 @@ DecapitoneAudioProcessorEditor::DecapitoneAudioProcessorEditor (DecapitoneAudioP
     steepAttach  = std::make_unique<APVTS::ButtonAttachment> (proc.apvts, "steep",  steepButton);
     thumpAttach  = std::make_unique<APVTS::ButtonAttachment> (proc.apvts, "thump",  thumpButton);
 
-    // Preset selector, backed by host programs.
+    // Preset selector, driven directly by the processor's factory presets.
     addAndMakeVisible (presetBox);
-    for (int i = 0; i < proc.getNumPrograms(); ++i)
-        presetBox.addItem (proc.getProgramName (i), i + 1);
+    for (int i = 0; i < proc.getNumFactoryPresets(); ++i)
+        presetBox.addItem (proc.getFactoryPresetName (i), i + 1);
     presetBox.setJustificationType (juce::Justification::centred);
     presetBox.onChange = [this]
     {
         const int idx = presetBox.getSelectedId() - 1;
-        if (idx >= 0 && idx != proc.getCurrentProgram())
-            proc.setCurrentProgram (idx);
+        if (idx >= 0 && idx != proc.getCurrentPreset())
+            proc.applyPreset (idx);
     };
 
     addAndMakeVisible (prevPreset);
     addAndMakeVisible (nextPreset);
     prevPreset.onClick = [this]
     {
-        const int n = proc.getNumPrograms();
-        proc.setCurrentProgram ((proc.getCurrentProgram() - 1 + n) % n);
+        const int n = proc.getNumFactoryPresets();
+        proc.applyPreset ((proc.getCurrentPreset() - 1 + n) % n);
         refreshPresetBox();
     };
     nextPreset.onClick = [this]
     {
-        const int n = proc.getNumPrograms();
-        proc.setCurrentProgram ((proc.getCurrentProgram() + 1) % n);
+        const int n = proc.getNumFactoryPresets();
+        proc.applyPreset ((proc.getCurrentPreset() + 1) % n);
         refreshPresetBox();
     };
     refreshPresetBox();
@@ -194,7 +194,7 @@ DecapitoneAudioProcessorEditor::~DecapitoneAudioProcessorEditor()
 
 void DecapitoneAudioProcessorEditor::refreshPresetBox()
 {
-    presetBox.setSelectedId (proc.getCurrentProgram() + 1, juce::dontSendNotification);
+    presetBox.setSelectedId (proc.getCurrentPreset() + 1, juce::dontSendNotification);
 }
 
 void DecapitoneAudioProcessorEditor::setUpKnob (LabeledKnob& k, const juce::String& id,
@@ -316,7 +316,7 @@ void DecapitoneAudioProcessorEditor::timerCallback()
     const float target = proc.outputLevel.load();
     meterLevel = target > meterLevel ? target : meterLevel * 0.85f + target * 0.15f;
     // The preset box can drift out of sync if the host changes program; keep it honest.
-    if (presetBox.getSelectedId() - 1 != proc.getCurrentProgram())
+    if (presetBox.getSelectedId() - 1 != proc.getCurrentPreset())
         refreshPresetBox();
     repaint();
 }

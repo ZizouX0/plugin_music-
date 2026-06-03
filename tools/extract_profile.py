@@ -98,6 +98,9 @@ def main():
     name = "captured"
     if "--name" in sys.argv:
         name = sys.argv[sys.argv.index("--name") + 1]
+    drive = 5.0
+    if "--drive" in sys.argv:
+        drive = float(sys.argv[sys.argv.index("--drive") + 1])
 
     with open(probe_path + ".meta.json") as f:
         meta = json.load(f)
@@ -139,6 +142,7 @@ def main():
     profile = {
         "name": name,
         "sr": sr,
+        "drive": drive,
         "lut_range": LUT_RANGE,
         "lut": [round(float(v), 6) for v in lut],
         "eq_mag": [round(float(v), 6) for v in eq],
