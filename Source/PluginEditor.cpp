@@ -2,10 +2,15 @@
 
 namespace
 {
-    const juce::Colour kBg      { 0xff1a1614 };
-    const juce::Colour kPanel   { 0xff272220 };
-    const juce::Colour kAccent  { 0xffd98c3a }; // warm amber
-    const juce::Colour kText    { 0xffe8ddd0 };
+    // Vintage brushed-metal palette, evoking classic analog saturation hardware.
+    const juce::Colour kBg      { 0xff14130f }; // dark surround
+    const juce::Colour kFaceTop { 0xff6f6957 }; // brushed faceplate (top)
+    const juce::Colour kFaceBot { 0xff423d33 }; // brushed faceplate (bottom)
+    const juce::Colour kPanel   { 0xff2b2822 }; // knob bodies / dark fields
+    const juce::Colour kAccent  { 0xffc8932f }; // brass / amber value arcs
+    const juce::Colour kRed     { 0xffc23b2f }; // PUNISH red
+    const juce::Colour kText    { 0xfff0e8d4 }; // cream legends
+    const juce::Colour kBar     { 0xff1b1915 }; // top preset bar
 }
 
 //==============================================================================
@@ -79,18 +84,13 @@ void DecapLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int wi
     g.setGradientFill (capGrad);
     g.fillEllipse (cap);
 
-    // Pointer.
+    // Pointer: vintage cream line from centre to rim.
     juce::Path pointer;
-    const float pl = radius * 0.82f;
-    pointer.addRoundedRectangle (-dim * 0.018f, -pl, dim * 0.036f, pl * 0.46f, dim * 0.018f);
+    const float pl = radius * 0.84f;
+    pointer.addRoundedRectangle (-dim * 0.016f, -pl, dim * 0.032f, pl * 0.6f, dim * 0.016f);
     pointer.applyTransform (juce::AffineTransform::rotation (angle).translated (centre));
-    g.setColour (kAccent.brighter (0.35f));
+    g.setColour (kText);
     g.fillPath (pointer);
-    // Glowing pointer tip.
-    const juce::Point<float> tip (centre.x + std::sin (angle) * pl,
-                                  centre.y - std::cos (angle) * pl);
-    g.setColour (kAccent.withAlpha (0.9f));
-    g.fillEllipse (juce::Rectangle<float> (dim * 0.06f, dim * 0.06f).withCentre (tip));
 }
 
 void DecapLookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton& b,
@@ -98,13 +98,30 @@ void DecapLookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton& 
 {
     auto bounds = b.getLocalBounds().toFloat().reduced (1.0f);
     const bool on = b.getToggleState();
+    // PUNISH gets the signature red; the others use brass.
+    const juce::Colour onCol = b.getButtonText().containsIgnoreCase ("PUNISH") ? kRed : kAccent;
 
-    g.setColour (on ? kAccent.withAlpha (0.9f) : kPanel.brighter (isHighlighted ? 0.15f : 0.0f));
+    // Recessed metal base.
+    juce::ColourGradient base (kPanel.brighter (0.18f), 0, bounds.getY(),
+                               kPanel.darker (0.35f), 0, bounds.getBottom(), false);
+    g.setGradientFill (base);
     g.fillRoundedRectangle (bounds, 4.0f);
-    g.setColour (on ? kAccent.brighter (0.2f) : kAccent.withAlpha (0.35f));
-    g.drawRoundedRectangle (bounds, 4.0f, 1.2f);
 
-    g.setColour (on ? juce::Colours::black.withAlpha (0.85f) : kText);
+    if (on)
+    {
+        g.setColour (onCol.withAlpha (0.92f));
+        g.fillRoundedRectangle (bounds.reduced (1.5f), 3.0f);
+        g.setColour (onCol.brighter (0.4f).withAlpha (0.5f));   // lit rim glow
+        g.drawRoundedRectangle (bounds.reduced (0.5f), 4.0f, 1.4f);
+    }
+    else
+    {
+        g.setColour (onCol.withAlpha (0.30f));
+        g.drawRoundedRectangle (bounds.reduced (0.5f), 4.0f, 1.2f);
+    }
+
+    g.setColour (on ? juce::Colours::black.withAlpha (0.85f)
+                    : kText.withAlpha (isHighlighted ? 1.0f : 0.8f));
     g.setFont (juce::Font (12.0f, juce::Font::bold));
     g.drawText (b.getButtonText(), bounds, juce::Justification::centred);
 }
@@ -122,10 +139,17 @@ DecapitoneAudioProcessorEditor::DecapitoneAudioProcessorEditor (DecapitoneAudioP
     setUpKnob (mixKnob,     "mix",     "MIX");
     setUpKnob (outputKnob,  "output",  "OUTPUT");
 
-    modelBox.addItemList ({ "A - Tape", "E - EMI", "N - Neve", "T - Triode", "P - Pentode", "C - Capture" }, 1);
-    modelBox.setJustificationType (juce::Justification::centred);
-    addAndMakeVisible (modelBox);
-    modelAttach = std::make_unique<APVTS::ComboBoxAttachment> (proc.apvts, "model", modelBox);
+    // STYLE: a 6-detent rotary (A E N T P C). Letters are drawn around it.
+    modelSlider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
+    modelSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+    addAndMakeVisible (modelSlider);
+    modelAttach = std::make_unique<APVTS::SliderAttachment> (proc.apvts, "model", modelSlider);
+
+    modelLabel.setText ("STYLE", juce::dontSendNotification);
+    modelLabel.setJustificationType (juce::Justification::centred);
+    modelLabel.setColour (juce::Label::textColourId, kText);
+    modelLabel.setFont (juce::Font (12.0f, juce::Font::bold));
+    addAndMakeVisible (modelLabel);
 
     for (auto* tb : { &punishButton, &steepButton, &thumpButton })
     {
@@ -283,6 +307,37 @@ void DecapitoneAudioProcessorEditor::drawMeter (juce::Graphics& g, juce::Rectang
     g.drawRoundedRectangle (r, 3.0f, 1.0f);
 }
 
+void DecapitoneAudioProcessorEditor::drawStyleLetters (juce::Graphics& g,
+                                                       juce::Rectangle<float> knobArea)
+{
+    static const char* letters[] = { "A", "E", "N", "T", "P", "C" };
+    // Rotary draws a centred square of side min(w,h); place letters just
+    // outside that knob body so they ring it clearly.
+    const float dim    = juce::jmin (knobArea.getWidth(), knobArea.getHeight());
+    const auto  centre = knobArea.getCentre();
+    const float lr     = dim * 0.5f + 8.0f;            // letter ring radius
+    const float start  = juce::MathConstants<float>::pi * 1.2f;
+    const float end    = juce::MathConstants<float>::pi * 2.8f;
+    const int   active = juce::jlimit (0, 5, (int) std::round (modelSlider.getValue()));
+
+    g.setFont (juce::Font (13.0f, juce::Font::bold));
+    for (int i = 0; i < 6; ++i)
+    {
+        const float a = start + (float) i / 5.0f * (end - start);
+        const juce::Point<float> p (centre.x + std::sin (a) * lr,
+                                    centre.y - std::cos (a) * lr);
+        if (i == active)
+        {
+            g.setColour (kAccent.brighter (0.5f));
+            g.fillEllipse (juce::Rectangle<float> (3.0f, 3.0f).withCentre (
+                               { p.x, p.y - 9.0f }));    // lit dot above active letter
+        }
+        g.setColour (i == active ? kAccent.brighter (0.6f) : kText.withAlpha (0.7f));
+        g.drawText (letters[i], juce::Rectangle<float> (16, 15).withCentre (p),
+                    juce::Justification::centred);
+    }
+}
+
 void DecapitoneAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // Scale all drawing so the UI looks identical at any window size.
@@ -292,43 +347,43 @@ void DecapitoneAudioProcessorEditor::paint (juce::Graphics& g)
 
     auto full = juce::Rectangle<float> (0, 0, kDesignW, kDesignH);
 
-    // Background: subtle vertical gradient + faint vignette.
-    juce::ColourGradient bg (kBg.brighter (0.05f), 0, 0, kBg.darker (0.4f), 0, kDesignH, false);
-    g.setGradientFill (bg);
-    g.fillRect (full);
-
-    // Header bar with gradient + accent underline.
-    auto header = full.removeFromTop (56);
-    juce::ColourGradient hg (kPanel.brighter (0.12f), 0, header.getY(),
-                             kPanel.darker (0.25f), 0, header.getBottom(), false);
-    g.setGradientFill (hg);
-    g.fillRect (header);
+    // Top preset bar (Soundtoys-style dark strip).
+    auto bar = full.removeFromTop (44);
+    g.setColour (kBar);
+    g.fillRect (bar);
     g.setColour (kAccent);
-    g.fillRect (header.withTop (header.getBottom() - 2.0f));   // underline
-
-    g.setColour (kAccent);
-    g.setFont (juce::Font (29.0f, juce::Font::bold));
-    g.drawText ("DECAPITONE", header.reduced (18, 0).removeFromLeft (300),
+    g.setFont (juce::Font (22.0f, juce::Font::bold));
+    g.drawText ("DECAPITONE", bar.reduced (16, 0).removeFromLeft (220),
                 juce::Justification::centredLeft);
-    g.setColour (kText.withAlpha (0.45f));
-    g.setFont (juce::Font (11.5f));
-    g.drawText ("ANALOG SATURATION", header.withTrimmedRight (40).reduced (18, 0),
+    g.setColour (kText.withAlpha (0.35f));
+    g.setFont (juce::Font (10.5f));
+    g.drawText ("ANALOG SATURATION", bar.removeFromRight (220).reduced (16, 0),
                 juce::Justification::centredRight);
 
-    // Backing panel behind all controls + the knob group panel.
-    const float panelTop = 64.0f;
-    const float panelBot = kDesignH - 16.0f;
-    drawPanel (g, { 16, panelTop, kDesignW - 32 - 26, panelBot - panelTop }, {});
+    // Brushed-metal faceplate.
+    auto face = full.reduced (10.0f);
+    juce::ColourGradient fg (kFaceTop, 0, face.getY(), kFaceBot, 0, face.getBottom(), false);
+    g.setGradientFill (fg);
+    g.fillRoundedRectangle (face, 10.0f);
+    // Fine brushed lines.
+    g.setColour (juce::Colours::white.withAlpha (0.02f));
+    for (float yy = face.getY() + 2; yy < face.getBottom(); yy += 3.0f)
+        g.drawLine (face.getX(), yy, face.getRight(), yy, 0.5f);
+    g.setColour (juce::Colours::black.withAlpha (0.4f));
+    g.drawRoundedRectangle (face, 10.0f, 1.2f);
+    g.setColour (kAccent.withAlpha (0.25f));
+    g.drawRoundedRectangle (face.reduced (2.5f), 8.0f, 1.0f);
 
-    // Knob group panel (lower half) with a section title.
-    const float knobTop = 196.0f;
-    drawPanel (g, { 24, knobTop, kDesignW - 48 - 26, panelBot - knobTop - 4 }, "CONTROLS");
+    // Letters around the STYLE knob.
+    if (! modelSlider.getBounds().isEmpty())
+        drawStyleLetters (g, modelSlider.getBounds().toFloat());
 
-    // Output meter on the right.
-    drawMeter (g, juce::Rectangle<float> (kDesignW - 33, panelTop + 6, 17, panelBot - panelTop - 22));
-    g.setColour (kText.withAlpha (0.45f));
+    // Output meter on the right edge of the faceplate.
+    auto meterCol = juce::Rectangle<float> (kDesignW - 34, face.getY() + 16, 16, face.getHeight() - 46);
+    drawMeter (g, meterCol);
+    g.setColour (kText.withAlpha (0.55f));
     g.setFont (juce::Font (9.0f, juce::Font::bold));
-    g.drawText ("OUT", juce::Rectangle<float> (kDesignW - 36, panelBot - 14, 24, 12),
+    g.drawText ("OUT", juce::Rectangle<float> (meterCol.getX() - 4, meterCol.getBottom() + 1, 24, 12),
                 juce::Justification::centred);
 }
 
@@ -338,60 +393,63 @@ void DecapitoneAudioProcessorEditor::resized()
     const float s = (float) getWidth() / kDesignW;
 
     juce::Rectangle<int> full (0, 0, (int) kDesignW, (int) kDesignH);
-    full.removeFromTop (56);                 // header
-    full.removeFromRight (26);               // meter gutter
-    auto area = full.reduced (28, 0);
-    area.removeFromTop (14);
+    full.removeFromTop (44);                 // preset bar
+    auto face = full.reduced (10);           // faceplate
+    face.reduce (16, 12);
+    face.removeFromRight (30);               // meter gutter
 
-    // Preset row.
-    auto presetRow = area.removeFromTop (28);
-    prevPreset.setBounds (presetRow.removeFromLeft (30));
-    presetRow.removeFromLeft (5);
-    presetBox.setBounds (presetRow.removeFromLeft (220));
-    presetRow.removeFromLeft (5);
-    nextPreset.setBounds (presetRow.removeFromLeft (30));
+    // Preset / capture row.
+    auto presetRow = face.removeFromTop (26);
+    prevPreset.setBounds (presetRow.removeFromLeft (28));
+    presetRow.removeFromLeft (4);
+    presetBox.setBounds (presetRow.removeFromLeft (190));
+    presetRow.removeFromLeft (4);
+    nextPreset.setBounds (presetRow.removeFromLeft (28));
+    presetRow.removeFromLeft (24);
+    loadCaptureButton.setBounds (presetRow.removeFromLeft (120));
+    presetRow.removeFromLeft (10);
+    captureLabel.setBounds (presetRow);
 
-    area.removeFromTop (10);
+    // Mode toggles along the bottom; PUNISH emphasised.
+    auto toggleRow = face.removeFromBottom (32);
+    toggleRow.removeFromLeft (4);
+    punishButton.setBounds (toggleRow.removeFromLeft (110).reduced (2));
+    toggleRow.removeFromLeft (8);
+    steepButton.setBounds (toggleRow.removeFromLeft (88).reduced (2));
+    toggleRow.removeFromLeft (8);
+    thumpButton.setBounds (toggleRow.removeFromLeft (88).reduced (2));
 
-    // Style + mode toggles row.
-    auto top = area.removeFromTop (32);
-    modelBox.setBounds (top.removeFromLeft (170).reduced (0, 2));
-    top.removeFromLeft (14);
-    auto toggle = [&top] (juce::ToggleButton& b) { b.setBounds (top.removeFromLeft (82).reduced (3, 2)); top.removeFromLeft (6); };
-    toggle (punishButton);
-    toggle (steepButton);
-    toggle (thumpButton);
+    face.removeFromTop (8);
+    face.removeFromBottom (6);
 
-    area.removeFromTop (8);
+    // Centre a compact band so each knob and its value box stay together.
+    const int bandH = juce::jmin (face.getHeight(), 150);
+    auto band = face.withHeight (bandH).withY (face.getCentreY() - bandH / 2);
 
-    // Capture row: load button + loaded-profile name.
-    auto capRow = area.removeFromTop (24);
-    loadCaptureButton.setBounds (capRow.removeFromLeft (120).reduced (0, 2));
-    capRow.removeFromLeft (10);
-    captureLabel.setBounds (capRow);
-
-    // Knob group sits inside the "CONTROLS" panel (top at y=196 in paint()).
-    area.removeFromTop (196 - area.getY());
-    area.reduce (8, 6);
-    area.removeFromBottom (10);              // keep value boxes off the panel edge
-
-    auto knobCell = [] (juce::Rectangle<int> r, LabeledKnob& k)
+    // One row of seven controls: DRIVE STYLE TONE LOWCUT HIGHCUT MIX OUTPUT.
+    auto knobCell = [] (juce::Rectangle<int> r, juce::Label& lab, juce::Component& ctl,
+                        bool /*valueBox*/)
     {
-        k.label.setBounds (r.removeFromTop (16));
-        k.slider.setBounds (r.reduced (2, 0));
+        lab.setBounds (r.removeFromTop (16));
+        ctl.setBounds (r.reduced (3, 0));
     };
 
-    const int knobW = area.getWidth() / 3;
-    auto row1 = area.removeFromTop (area.getHeight() / 2);
-    auto row2 = area;
+    const int n = 7;
+    const int colW = band.getWidth() / n;
+    auto col = [&] (int i) { return band.withX (band.getX() + i * colW).withWidth (colW); };
 
-    knobCell (row1.removeFromLeft (knobW).reduced (6), driveKnob);
-    knobCell (row1.removeFromLeft (knobW).reduced (6), toneKnob);
-    knobCell (row1.removeFromLeft (knobW).reduced (6), mixKnob);
-
-    knobCell (row2.removeFromLeft (knobW).reduced (6), lowCutKnob);
-    knobCell (row2.removeFromLeft (knobW).reduced (6), highCutKnob);
-    knobCell (row2.removeFromLeft (knobW).reduced (6), outputKnob);
+    knobCell (col (0), driveKnob.label,   driveKnob.slider,   true);
+    // STYLE: shrink the knob a little so the A/E/N/T/P/C ring fits the column.
+    {
+        auto sc = col (1);
+        modelLabel.setBounds (sc.removeFromTop (16));
+        modelSlider.setBounds (sc.reduced (15, 8));
+    }
+    knobCell (col (2), toneKnob.label,    toneKnob.slider,    true);
+    knobCell (col (3), lowCutKnob.label,  lowCutKnob.slider,  true);
+    knobCell (col (4), highCutKnob.label, highCutKnob.slider, true);
+    knobCell (col (5), mixKnob.label,     mixKnob.slider,     true);
+    knobCell (col (6), outputKnob.label,  outputKnob.slider,  true);
 
     // Apply the global scale so everything tracks the window size.
     const auto t = juce::AffineTransform::scale (s);

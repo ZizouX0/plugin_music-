@@ -52,8 +52,12 @@ private:
 
     LabeledKnob driveKnob, toneKnob, lowCutKnob, highCutKnob, mixKnob, outputKnob;
 
-    juce::ComboBox modelBox;
-    std::unique_ptr<APVTS::ComboBoxAttachment> modelAttach;
+    // Signature STYLE control: a rotary that snaps through A/E/N/T/P/C, with the
+    // letters drawn around it (Decapitator-style).
+    juce::Slider modelSlider;
+    juce::Label  modelLabel;
+    std::unique_ptr<APVTS::SliderAttachment> modelAttach;
+    void drawStyleLetters (juce::Graphics&, juce::Rectangle<float> knobArea);
 
     juce::ToggleButton punishButton { "PUNISH" };
     juce::ToggleButton steepButton  { "STEEP" };
@@ -77,8 +81,8 @@ private:
     void drawPanel (juce::Graphics&, juce::Rectangle<float>, const juce::String& title);
 
     // Reference design size; the window scales from this while keeping ratio.
-    static constexpr float kDesignW = 600.0f;
-    static constexpr float kDesignH = 500.0f;
+    static constexpr float kDesignW = 760.0f;
+    static constexpr float kDesignH = 380.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DecapitoneAudioProcessorEditor)
 };
