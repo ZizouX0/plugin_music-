@@ -2,15 +2,16 @@
 
 namespace
 {
-    // Vintage brushed-metal palette, evoking classic analog saturation hardware.
-    const juce::Colour kBg      { 0xff14130f }; // dark surround
-    const juce::Colour kFaceTop { 0xff6f6957 }; // brushed faceplate (top)
-    const juce::Colour kFaceBot { 0xff423d33 }; // brushed faceplate (bottom)
-    const juce::Colour kPanel   { 0xff2b2822 }; // knob bodies / dark fields
+    // Vintage green-grey "gunmetal" palette, evoking the classic Decapitator
+    // faceplate: muted olive brushed metal, cream legends, brass + red accents.
+    const juce::Colour kBg      { 0xff121310 }; // dark surround
+    const juce::Colour kFaceTop { 0xff5c6356 }; // brushed olive faceplate (top)
+    const juce::Colour kFaceBot { 0xff343a31 }; // brushed olive faceplate (bottom)
+    const juce::Colour kPanel   { 0xff24281f }; // knob bodies / dark fields
     const juce::Colour kAccent  { 0xffc8932f }; // brass / amber value arcs
     const juce::Colour kRed     { 0xffc23b2f }; // PUNISH red
-    const juce::Colour kText    { 0xfff0e8d4 }; // cream legends
-    const juce::Colour kBar     { 0xff1b1915 }; // top preset bar
+    const juce::Colour kText    { 0xfff1ecdb }; // cream legends
+    const juce::Colour kBar     { 0xff171814 }; // top preset bar
 }
 
 //==============================================================================
