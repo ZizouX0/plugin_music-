@@ -8,6 +8,8 @@ cmake-build-*/
 .vscode/
 __pycache__/
 *.pyc
+*.png
+ui*.png
 # capture artifacts (generated locally)
 probe.wav
 probe.wav.meta.json

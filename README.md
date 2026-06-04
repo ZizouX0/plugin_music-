@@ -69,6 +69,31 @@ sudo apt-get install -y libasound2-dev libx11-dev libxext-dev libxinerama-dev \
   libcurl4-openssl-dev libwebkit2gtk-4.1-dev
 ```
 
+## CPU usage
+
+Measured with the bundled headless benchmark (48 kHz, 512-sample blocks, 4×
+oversampling, stereo, Release/LTO):
+
+| Path | CPU per instance | ≈ instances / core |
+|------|------------------|--------------------|
+| Analog styles A/E/N/T/P | **1.5 – 2.6 %** | ~40 |
+| Capture mode (profile + EQ FIR loaded) | **~7.4 %** | ~13 |
+
+The analog models are very light. Capture mode is heavier only because of its
+257-tap linear-phase EQ; that FIR runs at the oversampled rate and can be moved
+to base rate later for a ~4× saving.
+
+Build and run it yourself:
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCH=ON
+cmake --build build --target DecapitoneBench
+./build/DecapitoneBench_artefacts/Release/DecapitoneBench [optional profile.json]
+```
+
+The same option builds `DecapitoneShot`, which renders the editor to a PNG
+headlessly (`./DecapitoneShot ui.png 2`) for quick UI iteration.
+
 ## Project layout
 
 ```

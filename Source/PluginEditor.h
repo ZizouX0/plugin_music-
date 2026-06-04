@@ -69,11 +69,16 @@ private:
     juce::Label      captureLabel;
     std::unique_ptr<juce::FileChooser> chooser;
 
-    float meterLevel { 0.0f };
+    float meterLevel    { 0.0f };
+    float meterPeakHold { 0.0f };
+    int   peakHoldHold  { 0 };
+
+    void drawMeter (juce::Graphics&, juce::Rectangle<float>);
+    void drawPanel (juce::Graphics&, juce::Rectangle<float>, const juce::String& title);
 
     // Reference design size; the window scales from this while keeping ratio.
     static constexpr float kDesignW = 600.0f;
-    static constexpr float kDesignH = 470.0f;
+    static constexpr float kDesignH = 500.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DecapitoneAudioProcessorEditor)
 };

@@ -30,55 +30,67 @@ void DecapLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int wi
                                          int height, float sliderPos,
                                          float startAngle, float endAngle, juce::Slider&)
 {
-    auto bounds = juce::Rectangle<int> (x, y, width, height).toFloat().reduced (8.0f);
-    const auto radius = juce::jmin (bounds.getWidth(), bounds.getHeight()) * 0.5f;
+    auto area = juce::Rectangle<int> (x, y, width, height).toFloat();
+    const float dim   = juce::jmin (area.getWidth(), area.getHeight());
+    auto bounds       = area.withSizeKeepingCentre (dim, dim).reduced (dim * 0.16f);
+    const auto radius = bounds.getWidth() * 0.5f;
     const auto centre = bounds.getCentre();
     const auto angle  = startAngle + sliderPos * (endAngle - startAngle);
 
-    // Drop shadow.
-    g.setColour (juce::Colours::black.withAlpha (0.45f));
-    g.fillEllipse (bounds.translated (0.0f, 2.5f));
-
-    // Tick ring.
-    const int ticks = 11;
-    for (int t = 0; t < ticks; ++t)
+    // Soft drop shadow.
+    for (int i = 3; i >= 1; --i)
     {
-        const float ta = startAngle + (float) t / (ticks - 1) * (endAngle - startAngle);
-        const float r1 = radius + 2.0f, r2 = radius + 6.0f;
-        const juce::Point<float> p1 (centre.x + std::sin (ta) * r1, centre.y - std::cos (ta) * r1);
-        const juce::Point<float> p2 (centre.x + std::sin (ta) * r2, centre.y - std::cos (ta) * r2);
-        g.setColour (kText.withAlpha (ta <= angle ? 0.9f : 0.25f));
-        g.drawLine ({ p1, p2 }, 1.4f);
+        g.setColour (juce::Colours::black.withAlpha (0.12f));
+        g.fillEllipse (bounds.translated (0.0f, (float) i).expanded ((float) i * 0.6f));
     }
 
-    // Brushed-metal body (radial gradient).
-    juce::ColourGradient grad (kPanel.brighter (0.25f), centre.x, bounds.getY(),
-                               kPanel.darker (0.4f),    centre.x, bounds.getBottom(), false);
+    // Background track arc (full sweep, dim).
+    const float trackR = radius + dim * 0.10f;
+    juce::Path track;
+    track.addCentredArc (centre.x, centre.y, trackR, trackR, 0.0f, startAngle, endAngle, true);
+    g.setColour (kPanel.brighter (0.10f));
+    g.strokePath (track, juce::PathStrokeType (dim * 0.045f, juce::PathStrokeType::curved,
+                                               juce::PathStrokeType::rounded));
+
+    // Active value arc with a subtle glow.
+    juce::Path arc;
+    arc.addCentredArc (centre.x, centre.y, trackR, trackR, 0.0f, startAngle, angle, true);
+    g.setColour (kAccent.withAlpha (0.25f));
+    g.strokePath (arc, juce::PathStrokeType (dim * 0.085f, juce::PathStrokeType::curved,
+                                             juce::PathStrokeType::rounded));
+    g.setColour (kAccent);
+    g.strokePath (arc, juce::PathStrokeType (dim * 0.045f, juce::PathStrokeType::curved,
+                                             juce::PathStrokeType::rounded));
+
+    // Knob body: vertical metal gradient + rim.
+    juce::ColourGradient grad (kPanel.brighter (0.32f), centre.x, bounds.getY(),
+                               kPanel.darker (0.45f),    centre.x, bounds.getBottom(), false);
     g.setGradientFill (grad);
     g.fillEllipse (bounds);
-    g.setColour (juce::Colours::black.withAlpha (0.6f));
-    g.drawEllipse (bounds, 1.5f);
+    g.setColour (juce::Colours::black.withAlpha (0.55f));
+    g.drawEllipse (bounds, 1.4f);
+    g.setColour (kText.withAlpha (0.06f));            // top highlight rim
+    g.drawEllipse (bounds.reduced (1.4f).removeFromTop (radius), 1.2f);
 
     // Inset cap.
-    auto cap = bounds.reduced (radius * 0.34f);
-    g.setColour (kPanel.darker (0.2f));
+    auto cap = bounds.reduced (radius * 0.40f);
+    juce::ColourGradient capGrad (kPanel.darker (0.10f), centre.x, cap.getY(),
+                                  kPanel.darker (0.35f),  centre.x, cap.getBottom(), false);
+    g.setGradientFill (capGrad);
     g.fillEllipse (cap);
-
-    // Amber value arc.
-    juce::Path arc;
-    const float arcR = radius + 4.0f;
-    arc.addCentredArc (centre.x, centre.y, arcR, arcR, 0.0f, startAngle, angle, true);
-    g.setColour (kAccent);
-    g.strokePath (arc, juce::PathStrokeType (2.6f, juce::PathStrokeType::curved,
-                                             juce::PathStrokeType::rounded));
 
     // Pointer.
     juce::Path pointer;
-    const float pl = radius * 0.78f;
-    pointer.addRoundedRectangle (-1.6f, -pl, 3.2f, pl * 0.5f, 1.6f);
+    const float pl = radius * 0.82f;
+    pointer.addRoundedRectangle (-dim * 0.018f, -pl, dim * 0.036f, pl * 0.46f, dim * 0.018f);
     pointer.applyTransform (juce::AffineTransform::rotation (angle).translated (centre));
-    g.setColour (kAccent.brighter (0.3f));
+    g.setColour (kAccent.brighter (0.35f));
     g.fillPath (pointer);
+    // Glowing pointer tip.
+    const juce::Point<float> tip (centre.x + std::sin (angle) * pl,
+                                  centre.y - std::cos (angle) * pl);
+    g.setColour (kAccent.withAlpha (0.9f));
+    g.fillEllipse (juce::Rectangle<float> (dim * 0.06f, dim * 0.06f).withCentre (tip));
 }
 
 void DecapLookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton& b,
@@ -214,6 +226,63 @@ void DecapitoneAudioProcessorEditor::setUpKnob (LabeledKnob& k, const juce::Stri
 }
 
 //==============================================================================
+void DecapitoneAudioProcessorEditor::drawPanel (juce::Graphics& g,
+                                                juce::Rectangle<float> r,
+                                                const juce::String& title)
+{
+    g.setColour (kPanel.withAlpha (0.55f));
+    g.fillRoundedRectangle (r, 8.0f);
+    g.setColour (kText.withAlpha (0.06f));
+    g.drawRoundedRectangle (r.reduced (0.5f), 8.0f, 1.0f);
+
+    if (title.isNotEmpty())
+    {
+        g.setColour (kAccent.withAlpha (0.85f));
+        g.setFont (juce::Font (10.5f, juce::Font::bold));
+        g.drawText (title, r.removeFromTop (16).reduced (10, 2).translated (0, 2),
+                    juce::Justification::topLeft);
+    }
+}
+
+void DecapitoneAudioProcessorEditor::drawMeter (juce::Graphics& g, juce::Rectangle<float> r)
+{
+    g.setColour (juce::Colours::black.withAlpha (0.5f));
+    g.fillRoundedRectangle (r, 3.0f);
+
+    auto toY = [r] (float db) { return juce::jmap (juce::jlimit (-60.0f, 6.0f, db),
+                                                   -60.0f, 6.0f, r.getBottom(), r.getY()); };
+
+    // Gradient column (green -> amber -> red), clipped to the current level.
+    const float db   = juce::Decibels::gainToDecibels (meterLevel, -60.0f);
+    auto fill = r.withTop (toY (db));
+    juce::ColourGradient grad (juce::Colour (0xff3fa34d), 0, r.getBottom(),
+                               juce::Colour (0xffd23b3b), 0, r.getY(), false);
+    grad.addColour (0.65, kAccent);
+    g.setGradientFill (grad);
+    g.fillRoundedRectangle (fill, 3.0f);
+
+    // dB tick marks.
+    g.setColour (kText.withAlpha (0.25f));
+    for (float t : { 0.0f, -6.0f, -12.0f, -24.0f, -48.0f })
+    {
+        const float yy = toY (t);
+        g.drawLine (r.getX(), yy, r.getRight(), yy, 0.6f);
+    }
+    // 0 dB line emphasised.
+    g.setColour (juce::Colours::red.withAlpha (0.7f));
+    g.drawLine (r.getX(), toY (0.0f), r.getRight(), toY (0.0f), 1.0f);
+
+    // Peak-hold marker.
+    const float peakDb = juce::Decibels::gainToDecibels (meterPeakHold, -60.0f);
+    g.setColour (peakDb > 0.0f ? juce::Colours::red : kAccent.brighter (0.3f));
+    const float py = toY (peakDb);
+    g.fillRect (r.getX(), py - 1.0f, r.getWidth(), 2.0f);
+
+    // Frame.
+    g.setColour (kText.withAlpha (0.12f));
+    g.drawRoundedRectangle (r, 3.0f, 1.0f);
+}
+
 void DecapitoneAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // Scale all drawing so the UI looks identical at any window size.
@@ -223,28 +292,44 @@ void DecapitoneAudioProcessorEditor::paint (juce::Graphics& g)
 
     auto full = juce::Rectangle<float> (0, 0, kDesignW, kDesignH);
 
-    // Header bar.
+    // Background: subtle vertical gradient + faint vignette.
+    juce::ColourGradient bg (kBg.brighter (0.05f), 0, 0, kBg.darker (0.4f), 0, kDesignH, false);
+    g.setGradientFill (bg);
+    g.fillRect (full);
+
+    // Header bar with gradient + accent underline.
     auto header = full.removeFromTop (56);
-    g.setColour (kPanel);
+    juce::ColourGradient hg (kPanel.brighter (0.12f), 0, header.getY(),
+                             kPanel.darker (0.25f), 0, header.getBottom(), false);
+    g.setGradientFill (hg);
     g.fillRect (header);
     g.setColour (kAccent);
-    g.setFont (juce::Font (28.0f, juce::Font::bold));
-    g.drawText ("DECAPITONE", header.reduced (18, 0).removeFromLeft (280),
+    g.fillRect (header.withTop (header.getBottom() - 2.0f));   // underline
+
+    g.setColour (kAccent);
+    g.setFont (juce::Font (29.0f, juce::Font::bold));
+    g.drawText ("DECAPITONE", header.reduced (18, 0).removeFromLeft (300),
                 juce::Justification::centredLeft);
-    g.setColour (kText.withAlpha (0.55f));
-    g.setFont (juce::Font (12.0f));
-    g.drawText ("analog saturation", header.withTrimmedRight (150).reduced (18, 0),
+    g.setColour (kText.withAlpha (0.45f));
+    g.setFont (juce::Font (11.5f));
+    g.drawText ("ANALOG SATURATION", header.withTrimmedRight (40).reduced (18, 0),
                 juce::Justification::centredRight);
 
-    // Output meter (right edge).
-    auto meterArea = juce::Rectangle<float> (kDesignW - 22, 70, 12, kDesignH - 90);
-    g.setColour (kPanel);
-    g.fillRoundedRectangle (meterArea, 3.0f);
-    const float db = juce::Decibels::gainToDecibels (meterLevel, -60.0f);
-    const float norm = juce::jmap (db, -60.0f, 6.0f, 0.0f, 1.0f);
-    auto fill = meterArea.withTop (meterArea.getBottom() - meterArea.getHeight() * juce::jlimit (0.0f, 1.0f, norm));
-    g.setColour (db > 0.0f ? juce::Colours::red : kAccent);
-    g.fillRoundedRectangle (fill, 3.0f);
+    // Backing panel behind all controls + the knob group panel.
+    const float panelTop = 64.0f;
+    const float panelBot = kDesignH - 16.0f;
+    drawPanel (g, { 16, panelTop, kDesignW - 32 - 26, panelBot - panelTop }, {});
+
+    // Knob group panel (lower half) with a section title.
+    const float knobTop = 196.0f;
+    drawPanel (g, { 24, knobTop, kDesignW - 48 - 26, panelBot - knobTop - 4 }, "CONTROLS");
+
+    // Output meter on the right.
+    drawMeter (g, juce::Rectangle<float> (kDesignW - 33, panelTop + 6, 17, panelBot - panelTop - 22));
+    g.setColour (kText.withAlpha (0.45f));
+    g.setFont (juce::Font (9.0f, juce::Font::bold));
+    g.drawText ("OUT", juce::Rectangle<float> (kDesignW - 36, panelBot - 14, 24, 12),
+                juce::Justification::centred);
 }
 
 void DecapitoneAudioProcessorEditor::resized()
@@ -252,26 +337,27 @@ void DecapitoneAudioProcessorEditor::resized()
     // Work in design coordinates, then scale the whole component tree.
     const float s = (float) getWidth() / kDesignW;
 
-    juce::Rectangle<int> area (0, 0, (int) kDesignW, (int) kDesignH);
-    area.reduce (16, 16);
-    area.removeFromTop (40);          // header
-    area.removeFromRight (20);        // meter gutter
+    juce::Rectangle<int> full (0, 0, (int) kDesignW, (int) kDesignH);
+    full.removeFromTop (56);                 // header
+    full.removeFromRight (26);               // meter gutter
+    auto area = full.reduced (28, 0);
+    area.removeFromTop (14);
 
     // Preset row.
     auto presetRow = area.removeFromTop (28);
-    prevPreset.setBounds (presetRow.removeFromLeft (28));
-    presetRow.removeFromLeft (4);
-    presetBox.setBounds (presetRow.removeFromLeft (200));
-    presetRow.removeFromLeft (4);
-    nextPreset.setBounds (presetRow.removeFromLeft (28));
+    prevPreset.setBounds (presetRow.removeFromLeft (30));
+    presetRow.removeFromLeft (5);
+    presetBox.setBounds (presetRow.removeFromLeft (220));
+    presetRow.removeFromLeft (5);
+    nextPreset.setBounds (presetRow.removeFromLeft (30));
 
     area.removeFromTop (10);
 
     // Style + mode toggles row.
-    auto top = area.removeFromTop (34);
-    modelBox.setBounds (top.removeFromLeft (180).reduced (0, 3));
-    top.removeFromLeft (12);
-    auto toggle = [&top] (juce::ToggleButton& b) { b.setBounds (top.removeFromLeft (84).reduced (2, 3)); top.removeFromLeft (6); };
+    auto top = area.removeFromTop (32);
+    modelBox.setBounds (top.removeFromLeft (170).reduced (0, 2));
+    top.removeFromLeft (14);
+    auto toggle = [&top] (juce::ToggleButton& b) { b.setBounds (top.removeFromLeft (82).reduced (3, 2)); top.removeFromLeft (6); };
     toggle (punishButton);
     toggle (steepButton);
     toggle (thumpButton);
@@ -284,13 +370,15 @@ void DecapitoneAudioProcessorEditor::resized()
     capRow.removeFromLeft (10);
     captureLabel.setBounds (capRow);
 
-    area.removeFromTop (10);
+    // Knob group sits inside the "CONTROLS" panel (top at y=196 in paint()).
+    area.removeFromTop (196 - area.getY());
+    area.reduce (8, 6);
+    area.removeFromBottom (10);              // keep value boxes off the panel edge
 
-    // Two rows of three knobs.
     auto knobCell = [] (juce::Rectangle<int> r, LabeledKnob& k)
     {
         k.label.setBounds (r.removeFromTop (16));
-        k.slider.setBounds (r);
+        k.slider.setBounds (r.reduced (2, 0));
     };
 
     const int knobW = area.getWidth() / 3;
@@ -314,8 +402,19 @@ void DecapitoneAudioProcessorEditor::resized()
 void DecapitoneAudioProcessorEditor::timerCallback()
 {
     const float target = proc.outputLevel.load();
-    meterLevel = target > meterLevel ? target : meterLevel * 0.85f + target * 0.15f;
-    // The preset box can drift out of sync if the host changes program; keep it honest.
+    meterLevel = target > meterLevel ? target : meterLevel * 0.82f + target * 0.18f;
+
+    // Peak hold: jump up instantly, hold ~0.7 s, then decay.
+    if (target >= meterPeakHold)
+    {
+        meterPeakHold = target;
+        peakHoldHold  = 21;            // ~0.7 s at 30 Hz
+    }
+    else if (--peakHoldHold <= 0)
+    {
+        meterPeakHold *= 0.94f;
+    }
+
     if (presetBox.getSelectedId() - 1 != proc.getCurrentPreset())
         refreshPresetBox();
     repaint();

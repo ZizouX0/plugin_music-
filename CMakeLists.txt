@@ -53,3 +53,38 @@ target_link_libraries(Decapitone PRIVATE
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags)
+
+# ---------------------------------------------------------------------------
+# Optional headless CPU benchmark:  cmake -B build -DBUILD_BENCH=ON
+# ---------------------------------------------------------------------------
+option(BUILD_BENCH "Build the headless CPU benchmark" OFF)
+if(BUILD_BENCH)
+    juce_add_console_app(DecapitoneBench PRODUCT_NAME "DecapitoneBench")
+    juce_generate_juce_header(DecapitoneBench)
+    target_sources(DecapitoneBench PRIVATE
+        bench/bench_main.cpp
+        Source/PluginProcessor.cpp
+        Source/PluginEditor.cpp)
+    target_compile_definitions(DecapitoneBench PUBLIC
+        JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_DISPLAY_SPLASH_SCREEN=0
+        JUCE_STANDALONE_APPLICATION=1
+        JucePlugin_Name="Decapitone")
+    target_link_libraries(DecapitoneBench PRIVATE
+        juce::juce_audio_utils juce::juce_dsp
+        PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags)
+
+    # Headless UI screenshot renderer.
+    juce_add_console_app(DecapitoneShot PRODUCT_NAME "DecapitoneShot")
+    juce_generate_juce_header(DecapitoneShot)
+    target_sources(DecapitoneShot PRIVATE
+        bench/screenshot_main.cpp
+        Source/PluginProcessor.cpp
+        Source/PluginEditor.cpp)
+    target_compile_definitions(DecapitoneShot PUBLIC
+        JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_DISPLAY_SPLASH_SCREEN=0
+        JUCE_STANDALONE_APPLICATION=1
+        JucePlugin_Name="Decapitone")
+    target_link_libraries(DecapitoneShot PRIVATE
+        juce::juce_audio_utils juce::juce_dsp
+        PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags)
+endif()
