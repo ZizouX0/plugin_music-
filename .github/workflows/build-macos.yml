@@ -1,0 +1,58 @@
+name: Build macOS
+
+# Builds a Universal (arm64 + x86_64) macOS VST3, AU and Standalone on every
+# push, and uploads them as a downloadable artifact. No local compiling needed:
+# open the run from the Actions tab and download "Decapitone-macOS".
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-14          # Apple Silicon runner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Cache the fetched JUCE source so configure doesn't re-clone every run.
+      - name: Cache JUCE source
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: juce-src-8.0.8
+
+      - name: Configure (Universal binary)
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+
+      - name: Build
+        run: cmake --build build --config Release -j3
+
+      - name: Package
+        run: |
+          set -e
+          REL="build/Decapitone_artefacts/Release"
+          mkdir -p dist
+          # tar preserves the bundle structure / symlinks inside .vst3/.component/.app
+          tar -czf "dist/Decapitone-macOS-Universal.tar.gz" -C "$REL" \
+            $( [ -d "$REL/VST3/Decapitone.vst3" ] && echo "VST3/Decapitone.vst3" ) \
+            $( [ -d "$REL/AU/Decapitone.component" ] && echo "AU/Decapitone.component" ) \
+            $( [ -d "$REL/Standalone/Decapitone.app" ] && echo "Standalone/Decapitone.app" )
+          echo "Packaged:"; tar -tzf dist/Decapitone-macOS-Universal.tar.gz | head -20
+
+      - name: Verify architectures
+        run: |
+          BIN="build/Decapitone_artefacts/Release/VST3/Decapitone.vst3/Contents/MacOS/Decapitone"
+          [ -f "$BIN" ] && lipo -info "$BIN" || echo "VST3 binary not found"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Decapitone-macOS
+          path: dist/Decapitone-macOS-Universal.tar.gz
+          if-no-files-found: error
