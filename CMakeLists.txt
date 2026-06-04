@@ -6,6 +6,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ---------------------------------------------------------------------------
+# macOS: build natively for Apple Silicon by default. Override with
+#   -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"   for a Universal binary.
+# ---------------------------------------------------------------------------
+if(APPLE AND NOT CMAKE_OSX_ARCHITECTURES)
+    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures" FORCE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS" FORCE)
+endif()
+
+# ---------------------------------------------------------------------------
 # Pull in JUCE.  We fetch a pinned release so builds are reproducible.
 # Set DECAPITONE_JUCE_PATH to a local JUCE checkout to skip the download.
 # ---------------------------------------------------------------------------
@@ -26,8 +35,10 @@ juce_add_plugin(Decapitone
     COMPANY_NAME            "ZizouAudio"
     PLUGIN_MANUFACTURER_CODE Zizu
     PLUGIN_CODE             Dcp1
-    FORMATS                 VST3 Standalone
+    FORMATS                 AU VST3 Standalone
     PRODUCT_NAME            "Decapitone"
+    BUNDLE_ID               "com.zizouaudio.decapitone"
+    AU_MAIN_TYPE            kAudioUnitType_Effect
     IS_SYNTH                FALSE
     NEEDS_MIDI_INPUT        FALSE
     NEEDS_MIDI_OUTPUT       FALSE

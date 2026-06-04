@@ -48,16 +48,67 @@ python3 tools/selftest.py                    # validate the pipeline (PASS)
 ## Building
 
 You need CMake ≥ 3.22 and a C++17 compiler. JUCE is fetched automatically.
+The plugin builds **AU** (macOS only), **VST3**, and a **Standalone** app.
 
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release -j
 ```
 
-Artifacts land in `build/Decapitone_artefacts/Release/` (VST3 + Standalone).
+Artifacts land in `build/Decapitone_artefacts/Release/`.
 
 > Tip: to build against a local JUCE checkout instead of downloading it,
 > pass `-DDECAPITONE_JUCE_PATH=/path/to/JUCE`.
+
+### macOS (Apple Silicon — M1/M2/M3)
+
+1. **Install the tools** (one-time):
+
+   ```bash
+   xcode-select --install            # Xcode command-line tools
+   brew install cmake                # or download CMake from cmake.org
+   ```
+
+2. **Build** (native arm64 by default; the AU + VST3 are produced):
+
+   ```bash
+   cmake -B build -DCMAKE_BUILD_TYPE=Release
+   cmake --build build --config Release -j
+   ```
+
+   For a Universal binary that also runs on Intel Macs:
+   `cmake -B build -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release`
+
+3. **Install** the formats into your user plug-in folders:
+
+   ```bash
+   cp -R "build/Decapitone_artefacts/Release/AU/Decapitone.component" \
+         ~/Library/Audio/Plug-Ins/Components/
+   cp -R "build/Decapitone_artefacts/Release/VST3/Decapitone.vst3" \
+         ~/Library/Audio/Plug-Ins/VST3/
+   ```
+
+4. **Validate the AU** (Logic only loads AUs that pass this):
+
+   ```bash
+   auval -v aufx Dcp1 Zizu
+   ```
+
+   You should see `AU VALIDATION SUCCEEDED`.
+
+5. **Load it**:
+   - **Logic Pro / GarageBand** → AU. Logic rescans on launch; if it does not
+     appear, open *Logic Pro ▸ Settings ▸ Plug-In Manager* and click *Reset &
+     Rescan Selection*. It shows up under **ZizouAudio › Decapitone**.
+   - **Ableton Live / Reaper / Cubase / Studio One / Bitwig** → VST3.
+
+   Because you built it locally it is **not quarantined**, so Gatekeeper will
+   not block it. (If you ever move a *downloaded* build, clear quarantine with
+   `xattr -dr com.apple.quarantine /path/to/Decapitone.component`.)
+
+> The AU identifiers are subtype `Dcp1`, manufacturer `Zizu` (set in
+> `CMakeLists.txt`). The standalone app is at
+> `build/Decapitone_artefacts/Release/Standalone/Decapitone.app`.
 
 ### Linux build dependencies
 
