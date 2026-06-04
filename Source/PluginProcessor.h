@@ -52,6 +52,7 @@ public:
     int          getCurrentPreset() const { return currentPreset; }
     void         applyPreset (int index);
     juce::String getFactoryPresetName (int index) const;
+    juce::String getFactoryPresetCategory (int index) const;
 
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;

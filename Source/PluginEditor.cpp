@@ -168,10 +168,32 @@ DecapitoneAudioProcessorEditor::DecapitoneAudioProcessorEditor (DecapitoneAudioP
     steepAttach  = std::make_unique<APVTS::ButtonAttachment> (proc.apvts, "steep",  steepButton);
     thumpAttach  = std::make_unique<APVTS::ButtonAttachment> (proc.apvts, "thump",  thumpButton);
 
-    // Preset selector, driven directly by the processor's factory presets.
+    // Preset selector, grouped into per-category submenus. The "General"
+    // category (just Init) goes at the top level for quick access.
     addAndMakeVisible (presetBox);
-    for (int i = 0; i < proc.getNumFactoryPresets(); ++i)
-        presetBox.addItem (proc.getFactoryPresetName (i), i + 1);
+    {
+        auto* root = presetBox.getRootMenu();
+        juce::String currentCat;
+        juce::PopupMenu sub;
+        auto flush = [&]
+        {
+            if (currentCat.isNotEmpty() && sub.getNumItems() > 0)
+                root->addSubMenu (currentCat, sub);
+            sub.clear();
+        };
+        for (int i = 0; i < proc.getNumFactoryPresets(); ++i)
+        {
+            const auto cat = proc.getFactoryPresetCategory (i);
+            if (cat == "General")
+            {
+                root->addItem (i + 1, proc.getFactoryPresetName (i));   // top-level
+                continue;
+            }
+            if (cat != currentCat) { flush(); currentCat = cat; }
+            sub.addItem (i + 1, proc.getFactoryPresetName (i));
+        }
+        flush();
+    }
     presetBox.setJustificationType (juce::Justification::centred);
     presetBox.onChange = [this]
     {

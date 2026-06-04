@@ -333,6 +333,14 @@ juce::String DecapitoneAudioProcessor::getFactoryPresetName (int index) const
     return {};
 }
 
+juce::String DecapitoneAudioProcessor::getFactoryPresetCategory (int index) const
+{
+    const auto& presets = decap::factoryPresets();
+    if (juce::isPositiveAndBelow (index, (int) presets.size()) && presets[(size_t) index].category != nullptr)
+        return presets[(size_t) index].category;
+    return {};
+}
+
 //==============================================================================
 // Capture engine.
 bool DecapitoneAudioProcessor::loadCaptureProfile (const juce::File& file)
