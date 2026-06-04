@@ -52,12 +52,13 @@ private:
 
     LabeledKnob driveKnob, toneKnob, lowCutKnob, highCutKnob, mixKnob, outputKnob;
 
-    // Signature STYLE control: a rotary that snaps through A/E/N/T/P/C, with the
-    // letters drawn around it (Decapitator-style).
+    // Signature STYLE control: a rotary that snaps through the six styles, with
+    // the selected style's full name shown beneath it.
     juce::Slider modelSlider;
-    juce::Label  modelLabel;
+    juce::Label  modelLabel;   // "STYLE" caption
+    juce::Label  styleName;    // current style name readout
     std::unique_ptr<APVTS::SliderAttachment> modelAttach;
-    void drawStyleLetters (juce::Graphics&, juce::Rectangle<float> knobArea);
+    void updateStyleName();
 
     juce::ToggleButton punishButton { "PUNISH" };
     juce::ToggleButton steepButton  { "STEEP" };

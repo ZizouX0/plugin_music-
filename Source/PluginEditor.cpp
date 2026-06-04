@@ -151,6 +151,14 @@ DecapitoneAudioProcessorEditor::DecapitoneAudioProcessorEditor (DecapitoneAudioP
     modelLabel.setFont (juce::Font (12.0f, juce::Font::bold));
     addAndMakeVisible (modelLabel);
 
+    // Readout showing the selected style's full name (updates with the knob).
+    styleName.setJustificationType (juce::Justification::centred);
+    styleName.setColour (juce::Label::textColourId, kAccent.brighter (0.3f));
+    styleName.setFont (juce::Font (13.0f, juce::Font::bold));
+    addAndMakeVisible (styleName);
+    modelSlider.onValueChange = [this] { updateStyleName(); };
+    updateStyleName();
+
     for (auto* tb : { &punishButton, &steepButton, &thumpButton })
     {
         tb->setClickingTogglesState (true);
@@ -307,35 +315,11 @@ void DecapitoneAudioProcessorEditor::drawMeter (juce::Graphics& g, juce::Rectang
     g.drawRoundedRectangle (r, 3.0f, 1.0f);
 }
 
-void DecapitoneAudioProcessorEditor::drawStyleLetters (juce::Graphics& g,
-                                                       juce::Rectangle<float> knobArea)
+void DecapitoneAudioProcessorEditor::updateStyleName()
 {
-    static const char* letters[] = { "A", "E", "N", "T", "P", "C" };
-    // Rotary draws a centred square of side min(w,h); place letters just
-    // outside that knob body so they ring it clearly.
-    const float dim    = juce::jmin (knobArea.getWidth(), knobArea.getHeight());
-    const auto  centre = knobArea.getCentre();
-    const float lr     = dim * 0.5f + 8.0f;            // letter ring radius
-    const float start  = juce::MathConstants<float>::pi * 1.2f;
-    const float end    = juce::MathConstants<float>::pi * 2.8f;
-    const int   active = juce::jlimit (0, 5, (int) std::round (modelSlider.getValue()));
-
-    g.setFont (juce::Font (13.0f, juce::Font::bold));
-    for (int i = 0; i < 6; ++i)
-    {
-        const float a = start + (float) i / 5.0f * (end - start);
-        const juce::Point<float> p (centre.x + std::sin (a) * lr,
-                                    centre.y - std::cos (a) * lr);
-        if (i == active)
-        {
-            g.setColour (kAccent.brighter (0.5f));
-            g.fillEllipse (juce::Rectangle<float> (3.0f, 3.0f).withCentre (
-                               { p.x, p.y - 9.0f }));    // lit dot above active letter
-        }
-        g.setColour (i == active ? kAccent.brighter (0.6f) : kText.withAlpha (0.7f));
-        g.drawText (letters[i], juce::Rectangle<float> (16, 15).withCentre (p),
-                    juce::Justification::centred);
-    }
+    static const char* names[] = { "TAPE", "EMI", "NEVE", "TRIODE", "PENTODE", "CAPTURE" };
+    const int i = juce::jlimit (0, 5, (int) std::round (modelSlider.getValue()));
+    styleName.setText (names[i], juce::dontSendNotification);
 }
 
 void DecapitoneAudioProcessorEditor::paint (juce::Graphics& g)
@@ -373,10 +357,6 @@ void DecapitoneAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawRoundedRectangle (face, 10.0f, 1.2f);
     g.setColour (kAccent.withAlpha (0.25f));
     g.drawRoundedRectangle (face.reduced (2.5f), 8.0f, 1.0f);
-
-    // Letters around the STYLE knob.
-    if (! modelSlider.getBounds().isEmpty())
-        drawStyleLetters (g, modelSlider.getBounds().toFloat());
 
     // Output meter on the right edge of the faceplate.
     auto meterCol = juce::Rectangle<float> (kDesignW - 34, face.getY() + 16, 16, face.getHeight() - 46);
@@ -439,11 +419,12 @@ void DecapitoneAudioProcessorEditor::resized()
     auto col = [&] (int i) { return band.withX (band.getX() + i * colW).withWidth (colW); };
 
     knobCell (col (0), driveKnob.label,   driveKnob.slider,   true);
-    // STYLE: shrink the knob a little so the A/E/N/T/P/C ring fits the column.
+    // STYLE: caption on top, knob in the middle, full style name beneath.
     {
         auto sc = col (1);
         modelLabel.setBounds (sc.removeFromTop (16));
-        modelSlider.setBounds (sc.reduced (15, 8));
+        styleName.setBounds (sc.removeFromBottom (18));
+        modelSlider.setBounds (sc.reduced (6, 2));
     }
     knobCell (col (2), toneKnob.label,    toneKnob.slider,    true);
     knobCell (col (3), lowCutKnob.label,  lowCutKnob.slider,  true);
