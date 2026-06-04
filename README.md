@@ -97,10 +97,14 @@ Artifacts land in `build/Decapitone_artefacts/Release/`.
    You should see `AU VALIDATION SUCCEEDED`.
 
 5. **Load it**:
+   - **Ableton Live** → VST3. In *Live ▸ Settings ▸ Plug-Ins*, make sure
+     *Use VST3 Plug-In System Folders* is **On**, then click *Rescan*.
+     Decapitone appears in the browser under *Plug-Ins* (group **ZizouAudio**).
+     Drop it on an audio track.
    - **Logic Pro / GarageBand** → AU. Logic rescans on launch; if it does not
      appear, open *Logic Pro ▸ Settings ▸ Plug-In Manager* and click *Reset &
      Rescan Selection*. It shows up under **ZizouAudio › Decapitone**.
-   - **Ableton Live / Reaper / Cubase / Studio One / Bitwig** → VST3.
+   - **Reaper / Cubase / Studio One / Bitwig** → VST3.
 
    Because you built it locally it is **not quarantined**, so Gatekeeper will
    not block it. (If you ever move a *downloaded* build, clear quarantine with
