@@ -35,7 +35,7 @@ int main (int argc, char** argv)
     auto* driveParam  = proc.apvts.getParameter ("drive");
     auto* punishParam = proc.apvts.getParameter ("punish");
 
-    printf("Decapitone CPU benchmark  (%.0f kHz, block %d, 4x oversampling, stereo)\n",
+    printf("Decapitone CPU benchmark  (%.0f kHz, block %d, 8x oversampling, stereo)\n",
            sr / 1000.0, blockSize);
     printf("%-20s %10s %12s %14s\n", "Model", "CPU/real", "%1 core", "x realtime");
     printf("---------------------------------------------------------------\n");

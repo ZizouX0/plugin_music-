@@ -7,7 +7,7 @@
 /*  ===========================================================================
     Decapitone - an analog saturation / distortion processor.
 
-    Signal flow (per channel, inside 4x oversampling around the nonlinearity):
+    Signal flow (per channel, inside 8x oversampling around the nonlinearity):
 
         in -> [low cut HPF (+steep 4th-order)] -> [tone tilt] ->
               [per-model PRE-emphasis] -> drive gain ->
@@ -90,21 +90,27 @@ private:
     std::array<Filter, 2> thump;      // low-shelf weight on output
     std::array<Filter, 2> dcBlock;    // DC/sub remover after the nonlinearity
 
-    // Capture engine state.
+    // Capture engine state. The EQ FIR coefficients are published per-slot
+    // alongside the profile, so the atomic index flip swaps both together.
     std::array<std::shared_ptr<decap::CaptureProfile>, 2> captureSlots;
+    std::array<juce::dsp::FIR::Coefficients<float>::Ptr, 2> captureEqCoeffsSlot;
     std::atomic<int> activeCaptureSlot { 0 };
-    std::array<juce::dsp::FIR::Filter<float>, 2> captureEq; // per-channel EQ FIR
-    juce::dsp::FIR::Coefficients<float>::Ptr captureEqCoeffs;
+    std::array<juce::dsp::FIR::Filter<float>, 2> captureEq;     // per-channel EQ FIR
+    juce::dsp::FIR::Coefficients<float>::Ptr captureEqActive;   // what captureEq holds now
     juce::File captureFile;
-    void rebuildCaptureEq (const decap::CaptureProfile& p);
+    void rebuildCaptureEq (const decap::CaptureProfile& p, int slot);
 
     double currentSampleRate { 44100.0 };
     int    currentPreset     { 0 };
 
     // Smoothed values to avoid zipper noise on automation.
-    juce::SmoothedValue<float> driveSmoothed, mixSmoothed, outputSmoothed;
+    juce::SmoothedValue<float> driveSmoothed, mixSmoothed, outputSmoothed, captureInSmoothed;
 
-    void updateFilters();
+    // Cached parameter values so filter coefficients are only rebuilt when a
+    // value actually changes (no heap allocation on the audio thread otherwise).
+    float lastLowCut = -1.0f, lastHighCut = -1.0f, lastTone = -2.0f;
+    int   lastModel = -1;
+    void updateFilters (bool force = false);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DecapitoneAudioProcessor)
 };

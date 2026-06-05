@@ -103,18 +103,23 @@ struct CaptureProfile
         const auto fmt = v.getProperty ("format", {}).toString();
 
         out.name              = v.getProperty ("name", "captured").toString();
-        out.range             = (float)  (double) v.getProperty ("lut_range", 1.5);
-        out.captureSampleRate = (double) v.getProperty ("sr", 96000.0);
+        out.range             = juce::jmax (0.1f, (float) (double) v.getProperty ("lut_range", 1.5));
+        out.captureSampleRate = juce::jmax (8000.0, (double) v.getProperty ("sr", 96000.0));
         out.layers.clear();
         out.eqMag.clear();
 
+        // Read a float array, replacing any NaN/Inf with 0 so a malformed
+        // profile can never inject non-finite samples into the audio path.
         auto readFloatArray = [] (const juce::var& arr, std::vector<float>& dst)
         {
             if (auto* a = arr.getArray())
             {
                 dst.resize ((size_t) a->size());
                 for (int i = 0; i < a->size(); ++i)
-                    dst[(size_t) i] = (float) (double) a->getReference (i);
+                {
+                    const float val = (float) (double) a->getReference (i);
+                    dst[(size_t) i] = std::isfinite (val) ? val : 0.0f;
+                }
                 return dst.size() > 1;
             }
             return false;
@@ -215,7 +220,9 @@ struct CaptureProfile
         }
 
         double sum = 0.0; for (float v : taps) sum += v;
-        if (std::abs (sum) > 1e-6) for (auto& v : taps) v /= (float) sum;
+        if (std::abs (sum) <= 1e-6)        // degenerate -> skip EQ rather than blast gain
+            return {};
+        for (auto& v : taps) v /= (float) sum;
         return taps;
     }
 };

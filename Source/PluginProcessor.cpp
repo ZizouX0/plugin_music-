@@ -107,27 +107,43 @@ void DecapitoneAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     for (auto& f : captureEq)
         f.prepare (monoSpec);
 
+    const int slot = activeCaptureSlot.load();
     // If a capture is already loaded (e.g. restored from state), design its EQ
     // for this (oversampled) rate.
-    if (auto p = captureSlots[(size_t) activeCaptureSlot.load()])
+    if (auto p = captureSlots[(size_t) slot])
         if (p->loaded)
-            rebuildCaptureEq (*p);
+            rebuildCaptureEq (*p, slot);
 
-    driveSmoothed .reset (sampleRate, 0.02);
-    mixSmoothed   .reset (sampleRate, 0.02);
-    outputSmoothed.reset (sampleRate, 0.02);
+    // Drive + capture-input gain are consumed in the oversampled loop, so they
+    // smooth at the oversampled rate; mix/output are consumed at the base rate.
+    const double osRate = sampleRate * oversampler->getOversamplingFactor();
+    driveSmoothed    .reset (osRate, 0.02);
+    captureInSmoothed.reset (osRate, 0.02);
+    mixSmoothed      .reset (sampleRate, 0.02);
+    outputSmoothed   .reset (sampleRate, 0.02);
 
-    updateFilters();
+    updateFilters (true);
 }
 
-void DecapitoneAudioProcessor::updateFilters()
+void DecapitoneAudioProcessor::updateFilters (bool force)
 {
     const double osRate = currentSampleRate * (oversampler ? oversampler->getOversamplingFactor() : 1);
 
     const float lc    = apvts.getRawParameterValue (pLowCut)->load();
     const float hc    = apvts.getRawParameterValue (pHighCut)->load();
     const float tone  = apvts.getRawParameterValue (pTone)->load();
-    const auto  model = static_cast<decap::Model> ((int) apvts.getRawParameterValue (pModel)->load());
+    const int   modelIdx = (int) apvts.getRawParameterValue (pModel)->load();
+
+    // Only rebuild coefficients when something actually changed. This keeps the
+    // common (static) audio block free of the heap allocations that the
+    // make*Filter() factory calls perform.
+    if (! force && lc == lastLowCut && hc == lastHighCut
+                && tone == lastTone && modelIdx == lastModel)
+        return;
+
+    lastLowCut = lc; lastHighCut = hc; lastTone = tone; lastModel = modelIdx;
+
+    const auto  model = static_cast<decap::Model> (modelIdx);
     const auto  voice = decap::voicing (model);
 
     auto hp = juce::dsp::IIR::Coefficients<float>::makeHighPass (osRate, lc);
@@ -212,11 +228,20 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     juce::AudioBuffer<float> dry;
     dry.makeCopyOf (buffer);
 
-    // Capture engine: pick up the active profile once per block (RT-safe).
+    // Capture engine: pick up the active profile + its EQ once per block.
     const bool useCapture = (model == decap::Model::captureC);
-    decap::CaptureProfile* cap = useCapture ? captureSlots[(size_t) activeCaptureSlot.load()].get() : nullptr;
+    const int  capSlot    = activeCaptureSlot.load();
+    decap::CaptureProfile* cap = useCapture ? captureSlots[(size_t) capSlot].get() : nullptr;
     const bool capReady = useCapture && cap != nullptr && cap->loaded;
-    const bool capHasEq = capReady && captureEqCoeffs != nullptr;
+
+    // Swap in this slot's EQ coefficients if they changed (pointer assignment
+    // only, no allocation — the FIR taps were built off the audio thread).
+    if (captureEqCoeffsSlot[(size_t) capSlot] != captureEqActive)
+    {
+        captureEqActive = captureEqCoeffsSlot[(size_t) capSlot];
+        for (auto& f : captureEq) { f.coefficients = captureEqActive; f.reset(); }
+    }
+    const bool capHasEq = capReady && captureEqActive != nullptr;
 
     // Single capture: Drive is input trim around the captured point.
     // Capture SET: Drive moves along the captured axis, blending two curves.
@@ -226,20 +251,27 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     if (capIsSet)
         cap->bracket (juce::jmap (driveRaw, 0.0f, 10.0f, cap->minDrive(), cap->maxDrive()),
                       capI0, capI1, capFrac);
-    const float captureInGain = capIsSet ? 1.0f : (driveRaw / 3.0f);
+    captureInSmoothed.setTargetValue (capIsSet ? 1.0f : (driveRaw / 3.0f));
 
     juce::dsp::AudioBlock<float> block (buffer);
     auto osBlock = oversampler->processSamplesUp (block);
 
     const int osNumSamples = (int) osBlock.getNumSamples();
+    const int chN = juce::jmin (numCh, 2);
+    float* chans[2] = { nullptr, nullptr };
+    for (int ch = 0; ch < chN; ++ch)
+        chans[ch] = osBlock.getChannelPointer ((size_t) ch);
 
-    for (int ch = 0; ch < numCh && ch < 2; ++ch)
+    // Sample-outer / channel-inner so each smoothed value advances once per
+    // sample frame and both channels see the same value (no L/R drift).
+    for (int i = 0; i < osNumSamples; ++i)
     {
-        auto* data = osBlock.getChannelPointer ((size_t) ch);
+        const float d  = driveSmoothed.getNextValue();
+        const float cg = captureInSmoothed.getNextValue();
 
-        for (int i = 0; i < osNumSamples; ++i)
+        for (int ch = 0; ch < chN; ++ch)
         {
-            float x = data[i];
+            float x = chans[ch][i];
 
             // Low cut (Steep engages a second stage for a 4th-order slope).
             x = lowCut[ch].processSample (x);
@@ -252,12 +284,10 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
             if (useCapture)
             {
-                // Measured static curve (blended across Drive for a set),
-                // then the measured tone EQ.
                 if (capReady)
                 {
-                    x = capIsSet ? cap->lookupBlend (x * captureInGain, capI0, capI1, capFrac)
-                                 : cap->lookup (x * captureInGain);
+                    x = capIsSet ? cap->lookupBlend (x * cg, capI0, capI1, capFrac)
+                                 : cap->lookup (x * cg);
                     if (capHasEq)
                         x = captureEq[ch].processSample (x);
                 }
@@ -267,13 +297,11 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             {
                 // Per-model pre-emphasis -> drive -> waveshaper -> de-emphasis.
                 x = preEmph[ch].processSample (x);
-                const float d = driveSmoothed.getNextValue();
                 x = decap::shape (x * d, model) * autoComp;
                 x = postEmph[ch].processSample (x);
             }
 
-            // DC blocker: remove the sub/DC offset that asymmetric (tube/tape)
-            // saturation generates, which otherwise sounds woofy and pumps.
+            // DC blocker removes the sub/DC offset from asymmetric saturation.
             x = dcBlock[ch].processSample (x);
 
             // High cut, then optional low-end Thump.
@@ -281,25 +309,31 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             if (useThump)
                 x = thump[ch].processSample (x);
 
-            data[i] = x;
+            chans[ch][i] = x;
         }
     }
 
     oversampler->processSamplesDown (block);
 
-    // Mix + output gain at base rate.
+    // Mix + output gain at base rate (one smoother step per sample frame).
     float peak = 0.0f;
-    for (int ch = 0; ch < numCh; ++ch)
+    const int n = buffer.getNumSamples();
+    float* wet[2] = { nullptr, nullptr };
+    const float* dryData[2] = { nullptr, nullptr };
+    for (int ch = 0; ch < numCh && ch < 2; ++ch)
     {
-        auto* wet = buffer.getWritePointer (ch);
-        const auto* dryData = dry.getReadPointer (juce::jmin (ch, dry.getNumChannels() - 1));
+        wet[ch]     = buffer.getWritePointer (ch);
+        dryData[ch] = dry.getReadPointer (ch);
+    }
 
-        for (int i = 0; i < buffer.getNumSamples(); ++i)
+    for (int i = 0; i < n; ++i)
+    {
+        const float m = mixSmoothed.getNextValue();
+        const float g = outputSmoothed.getNextValue();
+        for (int ch = 0; ch < numCh && ch < 2; ++ch)
         {
-            const float m = mixSmoothed.getNextValue();
-            const float g = outputSmoothed.getNextValue();
-            float s = (wet[i] * m + dryData[i] * (1.0f - m)) * g;
-            wet[i] = s;
+            const float s = (wet[ch][i] * m + dryData[ch][i] * (1.0f - m)) * g;
+            wet[ch][i] = s;
             peak = juce::jmax (peak, std::abs (s));
         }
     }
@@ -358,32 +392,24 @@ bool DecapitoneAudioProcessor::loadCaptureProfile (const juce::File& file)
     if (! decap::CaptureProfile::fromFile (file, *profile))
         return false;
 
-    rebuildCaptureEq (*profile);
-
-    // Publish into the inactive slot, then flip the active index atomically.
+    // Build everything into the inactive slot, then flip the index so the audio
+    // thread picks up the new profile AND its EQ coefficients together.
     const int inactive = activeCaptureSlot.load() ^ 1;
+    rebuildCaptureEq (*profile, inactive);
     captureSlots[(size_t) inactive] = profile;
     activeCaptureSlot.store (inactive);
     captureFile = file;
     return true;
 }
 
-void DecapitoneAudioProcessor::rebuildCaptureEq (const decap::CaptureProfile& p)
+void DecapitoneAudioProcessor::rebuildCaptureEq (const decap::CaptureProfile& p, int slot)
 {
     const double osRate = currentSampleRate * (oversampler ? oversampler->getOversamplingFactor() : 1);
     auto taps = p.buildEqFIR (osRate, 257);
-    if (taps.empty())
-    {
-        captureEqCoeffs = nullptr;
-        return;
-    }
-
-    captureEqCoeffs = new juce::dsp::FIR::Coefficients<float> (taps.data(), taps.size());
-    for (auto& f : captureEq)
-    {
-        f.coefficients = captureEqCoeffs;
-        f.reset();
-    }
+    captureEqCoeffsSlot[(size_t) slot] = taps.empty()
+        ? nullptr
+        : juce::dsp::FIR::Coefficients<float>::Ptr (
+              new juce::dsp::FIR::Coefficients<float> (taps.data(), taps.size()));
 }
 
 juce::String DecapitoneAudioProcessor::getCaptureName() const

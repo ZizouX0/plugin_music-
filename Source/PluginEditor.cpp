@@ -479,5 +479,9 @@ void DecapitoneAudioProcessorEditor::timerCallback()
 
     if (presetBox.getSelectedId() - 1 != proc.getCurrentPreset())
         refreshPresetBox();
-    repaint();
+
+    // Only repaint the meter strip, not the whole faceplate, every tick.
+    const float s = (float) getWidth() / kDesignW;
+    repaint (juce::roundToInt ((kDesignW - 40) * s), 0,
+             juce::roundToInt (28 * s) + 2, getHeight());
 }
