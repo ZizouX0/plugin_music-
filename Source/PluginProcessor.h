@@ -74,7 +74,7 @@ public:
     juce::File   getCaptureFile() const { return captureFile; }
 
 private:
-    static constexpr int oversampleFactor = 2; // 2 -> 4x oversampling
+    static constexpr int oversampleFactor = 3; // 3 -> 8x oversampling (less aliasing)
 
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampler;
 
@@ -88,6 +88,7 @@ private:
     std::array<Filter, 2> preEmph;    // per-model pre-emphasis (peaking)
     std::array<Filter, 2> postEmph;   // per-model de-emphasis (peaking, inverse)
     std::array<Filter, 2> thump;      // low-shelf weight on output
+    std::array<Filter, 2> dcBlock;    // DC/sub remover after the nonlinearity
 
     // Capture engine state.
     std::array<std::shared_ptr<decap::CaptureProfile>, 2> captureSlots;

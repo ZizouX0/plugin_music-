@@ -53,16 +53,18 @@ inline Voicing voicing (Model model) noexcept
 {
     switch (model)
     {
-        // Tape: a gentle upper-mid push so the highs hit tape compression first.
-        case Model::tapeA:    return { 3000.0f, 0.50f, 4.0f,  0.0f };
-        // EMI: presence-band emphasis keeps it articulate and bright.
-        case Model::emiE:     return { 2500.0f, 0.60f, 5.0f, -1.5f };
+        // Emphasis is deliberately gentle: boosting a band hard into the
+        // waveshaper makes vocals fizzy/harsh, so these are light touches.
+        // Tape: a slight upper-mid lift below the harsh sibilance region.
+        case Model::tapeA:    return { 2200.0f, 0.45f, 1.5f,  0.0f };
+        // EMI: mild presence emphasis to stay articulate.
+        case Model::emiE:     return { 2000.0f, 0.50f, 2.0f, -1.5f };
         // Neve: low-mid emphasis -> thick, chesty console weight.
-        case Model::neveN:    return {  300.0f, 0.55f, 5.0f,  4.0f };
-        // Triode: broad mid emphasis for a vocal, forward tube sound.
-        case Model::triodeT:  return { 1200.0f, 0.45f, 4.0f, -0.5f };
-        // Pentode: upper-mid bite that makes the odd harmonics snarl.
-        case Model::pentodeP: return { 3500.0f, 0.70f, 6.0f,  3.0f };
+        case Model::neveN:    return {  300.0f, 0.55f, 2.5f,  4.0f };
+        // Triode: gentle mid emphasis for a forward tube sound.
+        case Model::triodeT:  return { 1000.0f, 0.45f, 1.5f, -0.5f };
+        // Pentode: a touch of upper-mid bite (kept modest to avoid fizz).
+        case Model::pentodeP: return { 2600.0f, 0.60f, 2.5f,  3.0f };
         default:              return { 1000.0f, 0.5f,  0.0f,  0.0f };
     }
 }

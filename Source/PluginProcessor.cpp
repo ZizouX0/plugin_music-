@@ -99,7 +99,7 @@ void DecapitoneAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     spec.numChannels      = 1;
 
     for (auto* bank : { &lowCut, &lowCut2, &highCut, &toneLow, &toneHigh,
-                        &preEmph, &postEmph, &thump })
+                        &preEmph, &postEmph, &thump, &dcBlock })
         for (auto& f : *bank)
             f.prepare (spec);
 
@@ -151,6 +151,9 @@ void DecapitoneAudioProcessor::updateFilters()
     auto thC = juce::dsp::IIR::Coefficients<float>::makeLowShelf (
                     osRate, 110.0f, 0.7f, juce::Decibels::decibelsToGain (6.0f));
 
+    // DC blocker: 1st-order high-pass at ~12 Hz, well below audio.
+    auto dcC = juce::dsp::IIR::Coefficients<float>::makeHighPass (osRate, 12.0f);
+
     for (auto& f : lowCut)   *f.coefficients = *hp;
     for (auto& f : lowCut2)  *f.coefficients = *hp;
     for (auto& f : highCut)  *f.coefficients = *lp;
@@ -159,6 +162,7 @@ void DecapitoneAudioProcessor::updateFilters()
     for (auto& f : preEmph)  *f.coefficients = *preC;
     for (auto& f : postEmph) *f.coefficients = *postC;
     for (auto& f : thump)    *f.coefficients = *thC;
+    for (auto& f : dcBlock)  *f.coefficients = *dcC;
 }
 
 //==============================================================================
@@ -189,8 +193,9 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     const float mixRaw   = apvts.getRawParameterValue (pMix)->load() * 0.01f;
     const float outRaw   = juce::Decibels::decibelsToGain (apvts.getRawParameterValue (pOutput)->load());
 
-    // Map 0..10 to a usable gain. Punish opens up a far hotter range.
-    const float driveGain = juce::Decibels::decibelsToGain (driveRaw * (punish ? 6.0f : 3.0f));
+    // Map 0..10 to a usable gain. Gentle at the low end so "Drive 3" is a
+    // light touch, not slammed; Punish adds a fixed extra shove on top.
+    const float driveGain = juce::Decibels::decibelsToGain (driveRaw * 2.0f + (punish ? 12.0f : 0.0f));
 
     // Mix-aware auto-gain: tame the wet path so its loudness stays close to the
     // dry signal regardless of drive, then apply the per-model loudness match.
@@ -266,6 +271,10 @@ void DecapitoneAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                 x = decap::shape (x * d, model) * autoComp;
                 x = postEmph[ch].processSample (x);
             }
+
+            // DC blocker: remove the sub/DC offset that asymmetric (tube/tape)
+            // saturation generates, which otherwise sounds woofy and pumps.
+            x = dcBlock[ch].processSample (x);
 
             // High cut, then optional low-end Thump.
             x = highCut[ch].processSample (x);
