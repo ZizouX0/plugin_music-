@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EDM Mix &amp; Master — Printable Cheat Sheet</title>
+<style>
+  :root{
+    --bg:#0d0a18; --card:#161229; --ink:#ECECF4; --muted:#9b94b8;
+    --line:#2a2342; --cyan:#00e5ff; --purple:#9b5cff; --pink:#ff2d9b;
+    --green:#3dffa6; --gold:#ffcf5c; --lime:#5cff9b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font:14px/1.45 "Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+    background:var(--bg); color:var(--ink);
+    padding:28px; max-width:1180px; margin:0 auto;
+  }
+  header{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:16px; border-bottom:2px solid var(--line); padding-bottom:14px; margin-bottom:20px;
+  }
+  h1{font-size:26px; margin:0; letter-spacing:.3px}
+  h1 .accent{color:var(--cyan)}
+  header .sub{color:var(--muted); font-size:12.5px; margin-top:4px}
+  .legend{font-size:11px; color:var(--muted); text-align:right; line-height:1.6}
+  .legend b{color:var(--gold)}
+
+  .grid{
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:14px; align-items:start;
+  }
+  .card{
+    background:var(--card); border:1px solid var(--line);
+    border-radius:12px; padding:14px 15px; break-inside:avoid;
+  }
+  .card.span2{grid-column:span 2}
+  .card.span3{grid-column:span 3}
+  .card h2{
+    font-size:13px; text-transform:uppercase; letter-spacing:.8px;
+    margin:0 0 10px; padding-bottom:7px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:8px;
+  }
+  .tag{
+    width:10px;height:10px;border-radius:3px;display:inline-block;flex:0 0 auto;
+  }
+  h3{font-size:12px; margin:12px 0 5px; color:var(--cyan); text-transform:uppercase; letter-spacing:.5px}
+  ul,ol{margin:6px 0; padding-left:18px}
+  li{margin:3px 0}
+  p{margin:6px 0}
+  b{color:#fff}
+  .k{
+    color:var(--green); font-weight:700; font-variant-numeric:tabular-nums;
+    background:rgba(61,255,166,.08); padding:0 4px; border-radius:4px;
+  }
+  table{width:100%; border-collapse:collapse; margin:6px 0; font-size:12.5px}
+  th,td{text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.4px}
+  td:first-child{color:#cfc8e6; white-space:nowrap}
+  .pill{display:inline-block; font-size:11px; padding:1px 7px; border-radius:20px; border:1px solid var(--line); color:var(--muted)}
+  .good{color:var(--green); border-color:rgba(61,255,166,.4)}
+  .bad{color:var(--pink); border-color:rgba(255,45,155,.4)}
+  .note{font-size:11.5px; color:var(--muted); margin-top:8px; font-style:italic}
+  footer{margin-top:18px; padding-top:12px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; display:flex; justify-content:space-between}
+
+  @media print{
+    @page{ size:A4 landscape; margin:10mm; }
+    body{background:#fff; color:#111; padding:0; max-width:none; font-size:9.5px; line-height:1.3}
+    header{border-color:#bbb}
+    h1{font-size:18px; color:#111}
+    h1 .accent{color:#0a6}
+    .legend{color:#555}
+    .card{background:#fafafa; border-color:#ccc; border-radius:8px; padding:8px 9px}
+    .card h2{color:#111; border-color:#ccc; font-size:10.5px}
+    h3{color:#0a6; font-size:9.5px}
+    .grid{gap:8px}
+    .k{color:#0a6; background:none; padding:0}
+    th,td{border-color:#ddd; padding:2px 4px; font-size:9px}
+    th{color:#555}
+    td:first-child{color:#222}
+    b{color:#000}
+    .note,footer{color:#555}
+    .pill{border-color:#bbb}
+    .good{color:#0a6} .bad{color:#c0246b}
+  }
+  .printbtn{
+    position:fixed; right:18px; bottom:18px; background:var(--cyan); color:#04121a;
+    border:none; padding:11px 18px; border-radius:24px; font-weight:700; cursor:pointer;
+    box-shadow:0 6px 24px rgba(0,229,255,.35); font-size:13px;
+  }
+  @media print{ .printbtn{display:none} }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1><span class="accent">EDM</span> Mix &amp; Master — Cheat Sheet</h1>
+    <div class="sub">House &amp; Tech House · the numbers worth keeping next to your DAW</div>
+  </div>
+  <div class="legend">
+    <span class="k">green</span> = a number to dial in<br>
+    <span class="pill good">do</span> &nbsp; <span class="pill bad">avoid</span><br>
+    companion to the 3D course
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- 1 · MIX ORDER -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--cyan)"></span>The Golden Order</h2>
+    <ol>
+      <li><b>Foundation</b> — organize, gain stage, lock kick &amp; bass, loudness stress-test</li>
+      <li><b>Balance</b> — level the hook, balance everything around it, reference</li>
+      <li><b>Shape</b> — EQ → dynamics → saturation, one problem at a time</li>
+      <li><b>Space</b> — reverb, delay, width</li>
+      <li><b>Story</b> — automation, transitions, energy arc</li>
+      <li><b>Master</b> — glue, loudness, true-peak, reference, bounce</li>
+    </ol>
+    <p class="note">Work top-down. Your “lead vocal” = <b>kick + sub + main hook</b>.</p>
+  </div>
+
+  <!-- 2 · GAIN STAGING -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--purple)"></span>Gain Staging / Headroom</h2>
+    <table>
+      <tr><td>Plugins expect avg</td><td><span class="k">−18 dBFS</span></td></tr>
+      <tr><td>Channels peak</td><td><span class="k">−6 dBFS</span></td></tr>
+      <tr><td>Buses peak</td><td><span class="k">−3 dBFS</span></td></tr>
+      <tr><td>Master pre-limiter</td><td>leave <span class="k">−6 dBFS</span></td></tr>
+      <tr><td>Rough mix under</td><td><span class="k">−5 dBFS</span></td></tr>
+    </table>
+    <p class="note">Kick = the loudest single element. Get loud at the master, not now.</p>
+  </div>
+
+  <!-- 3 · KICK & BASS -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--pink)"></span>Kick &amp; Bass — The Engine</h2>
+    <p>60% of the mix lives below 250 Hz. They must interlock, never collide.</p>
+    <table>
+      <tr><td>Kick punch</td><td><span class="k">50–100 Hz</span> + click <span class="k">2–5 kHz</span></td></tr>
+      <tr><td>Sub/bass</td><td>off the kick’s fundamental; carve a dip</td></tr>
+      <tr><td>HP everything else</td><td><span class="k">20–35 Hz</span></td></tr>
+      <tr><td>Boomy kick? cut</td><td><span class="k">150–250 Hz</span></td></tr>
+    </table>
+    <p>Coexist via <b>EQ carving</b> + <b>sidechain ducking</b>. Keep all sub-bass <b>MONO</b>.</p>
+  </div>
+
+  <!-- 4 · SPECTRUM -->
+  <div class="card span2">
+    <h2><span class="tag" style="background:var(--green)"></span>Frequency Spectrum Map</h2>
+    <table>
+      <tr><th>Range</th><th>Owns</th><th>Too much =</th></tr>
+      <tr><td>Sub 20–60</td><td>weight, sub-bass</td><td>rumble</td></tr>
+      <tr><td>Bass 60–120</td><td>kick punch, power</td><td>boomy</td></tr>
+      <tr><td>Low-mid 200–500</td><td>body, warmth</td><td>mud / boxy</td></tr>
+      <tr><td>Mid 500–2k</td><td>definition</td><td>honky / nasal</td></tr>
+      <tr><td>Hi-mid 2–6k</td><td>presence, bite</td><td>harsh / piercing</td></tr>
+      <tr><td>Highs 6–20k</td><td>air, sheen</td><td>brittle / sibilant</td></tr>
+    </table>
+    <p class="note"><b>EDM hotspots:</b> 200–500 Hz mud (stacked synths) · 2–6 kHz harsh (supersaws/risers) · 10–16 kHz air = “expensive”.</p>
+  </div>
+
+  <!-- 5 · EQ / COMP quick -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--purple)"></span>EQ &amp; Compression</h2>
+    <h3>4 jobs of EQ</h3>
+    <ul>
+      <li><b>Clean:</b> boost Q≈1.5, sweep, find ugly, <i>cut</i></li>
+      <li><b>Enhance:</b> wide Q 0.3–2, ~<span class="k">3 dB</span></li>
+      <li><b>Transform:</b> filter sweep = the build sound</li>
+      <li><b>Make room:</b> dip where another lives</li>
+    </ul>
+    <h3>Mix-bus glue</h3>
+    <p>Ratio <span class="k">3:1</span> · attack <span class="k">~100 ms</span> · release <span class="k">~5 ms</span> · final <span class="k">1–2 dB</span> GR · breathes in time.</p>
+  </div>
+
+  <!-- 6 · HOUSE vs TECH HOUSE -->
+  <div class="card span3">
+    <h2><span class="tag" style="background:var(--lime)"></span>House vs Tech House — Genre Focus</h2>
+    <table>
+      <tr><th></th><th>House</th><th>Tech House</th></tr>
+      <tr><td>BPM</td><td>120–126</td><td>122–128</td></tr>
+      <tr><td>Kick</td><td>rounder, longer tail, ~50–60 Hz body</td><td>tight, punchy, short — leaves room for bass</td></tr>
+      <tr><td>Bass</td><td>warm sustained sub / deep notes</td><td><b>rolling 16ths</b>, syncopated, often a “rumble”</td></tr>
+      <tr><td>Chords</td><td>rich pads, piano/organ stabs, soul</td><td>sparse — one stab or none</td></tr>
+      <tr><td>Drums</td><td>open hats on the off-beat, claps</td><td>busy shaker/perc, dry closed hats, rides</td></tr>
+      <tr><td>Space</td><td>lush reverb, musical</td><td>dry &amp; tight, short rooms only</td></tr>
+      <tr><td>Sidechain</td><td>smooth, musical pump</td><td>snappy duck — keeps the roll punchy</td></tr>
+      <tr><td>Energy</td><td>euphoric, vocal-friendly</td><td>hypnotic, groove-locked, DJ tool</td></tr>
+      <tr><td>Mix for…</td><td>warmth — don’t over-HP pads, let sub sustain</td><td>groove &amp; transients — dry, carve mud hard, mono lows</td></tr>
+    </table>
+    <p class="note">Sing along → house. Lock into the bassline forever → tech house. Always reference the <b>right</b> sub-genre.</p>
+  </div>
+
+  <!-- 7 · SIDECHAIN -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--gold)"></span>Sidechain — The Pump</h2>
+    <table>
+      <tr><td>Trigger</td><td>kick (or silent trigger track)</td></tr>
+      <tr><td>Attack</td><td>fast — duck instantly</td></tr>
+      <tr><td>Release</td><td>tempo-timed — recover just before next kick</td></tr>
+      <tr><td>Depth</td><td>subtle (deep house) → heavy (big-room)</td></tr>
+    </table>
+    <p class="note">Apply to bass, pads, often the whole non-drum bus.</p>
+  </div>
+
+  <!-- 8 · SPACE / WIDTH -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--cyan)"></span>Reverb · Delay · Width</h2>
+    <table>
+      <tr><td>Ambience verb</td><td>decay <span class="k">250–750 ms</span></td></tr>
+      <tr><td>Room/hall tone</td><td>decay <span class="k">0.5–3 s</span></td></tr>
+      <tr><td>Ping-pong delay</td><td>L <span class="k">50–200 ms</span> / R offset, fb <span class="k">0–15%</span></td></tr>
+      <tr><td>Tempo-sync all delays</td><td>⅛ or dotted-⅛</td></tr>
+    </table>
+    <p><span class="pill good">center/mono</span> kick · sub · lead · main clap<br>
+       <span class="pill good">wide</span> hats · perc · arps · saw layers · FX</p>
+    <p class="note">Always HP reverb returns. Keep <b>&lt;120 Hz mono</b>. Check width in mono.</p>
+  </div>
+
+  <!-- 9 · SATURATION -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--green)"></span>Saturation &amp; Clipping</h2>
+    <ul>
+      <li><b>Compress</b> — peaks down smoothly</li>
+      <li><b>Limit</b> — hard wall (master)</li>
+      <li><b>Clip</b> — chop peak tips, keep punch &amp; loudness — great on kicks</li>
+    </ul>
+    <p><b>Clip</b> the kick · <b>saturate</b> the sub (survives phones) · saturate leads to cut.</p>
+    <p class="note">Saturation = harmonics → warmth + translation on small speakers.</p>
+  </div>
+
+  <!-- 10 · MASTER CHAIN -->
+  <div class="card span2">
+    <h2><span class="tag" style="background:var(--green)"></span>Master Chain &amp; Delivery</h2>
+    <ol>
+      <li>Subtractive/tonal EQ — broad balance, small moves</li>
+      <li>Glue comp — <span class="k">1–2 dB</span> GR, slow</li>
+      <li>Saturation / exciter — harmonics &amp; cohesion</li>
+      <li>Multiband (optional) — tame sub or harsh hi-mids</li>
+      <li><b>True-peak limiter</b> — push to target</li>
+    </ol>
+    <p>Bounce the mix at <span class="k">−6 dBFS, limiter OFF</span>. Export master: <span class="k">24-bit WAV</span> (+ MP3 320 for sharing). Check in mono, on phone, in the car, on earbuds.</p>
+  </div>
+
+  <!-- 11 · LOUDNESS TARGETS -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--pink)"></span>Loudness Targets</h2>
+    <table>
+      <tr><th>Destination</th><th>Integrated</th><th>True-Peak</th></tr>
+      <tr><td><b>Streaming</b><br><span class="note">Spotify/Apple/YT — normalized</span></td><td><span class="k">−9 to −10</span> LUFS<br><span class="note">don’t chase −14 ref</span></td><td><span class="k">−1.0 dBTP</span><br><span class="note">−2.0 lossy/Apple</span></td></tr>
+      <tr><td><b>Club / festival</b><br><span class="note">not normalized</span></td><td><span class="k">−6 to −8</span> LUFS<br><span class="note">keep dynamics</span></td><td><span class="k">−0.3 to −1.0</span> dBTP</td></tr>
+    </table>
+    <p class="note">One master, two deliveries. Loudness comes from a tight low end + clipping + a good limiter — not from slamming.</p>
+  </div>
+
+</div>
+
+<footer>
+  <span>EDM Mix &amp; Master Cheat Sheet — companion to the interactive 3D course.</span>
+  <span>Print to A4 landscape · or save as PDF.</span>
+</footer>
+
+<button class="printbtn" onclick="window.print()">🖨 Print / Save PDF</button>
+</body>
+</html>

@@ -171,7 +171,7 @@
   <h1>EDM MIXING &amp; MASTERING</h1>
   <h2>FROM EMPTY PROJECT TO CLUB-READY MASTER</h2>
   <div id="enter">START THE COURSE ▸</div>
-  <p>A calm, interactive 3D walkthrough of the full mixing &amp; mastering course — rebuilt for house / EDM, with a built-in audio engine. Every lesson has <b>▶ listen</b> buttons so you can hear the difference each move makes.<br><br><i>🎧 headphones recommended · motion is set to “calm” by default</i></p>
+  <p>A calm, interactive 3D walkthrough of the full mixing &amp; mastering course — rebuilt for house / EDM, with a built-in audio engine. Every lesson has <b>▶ listen</b> buttons so you can hear the difference each move makes.<br><br><i>🎧 headphones recommended · motion is set to “calm” by default</i><br><br>📄 <a href="edm-cheat-sheet.html" style="color:#00e5ff" target="_blank">Open the printable cheat sheet →</a></p>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -318,6 +318,42 @@ const SECTIONS = [
   <p>Ratio <span class="k">3:1</span> → ~10 dB GR → slow attack (<span class="k">100 ms</span>) → fast release (<span class="k">5 ms</span>) → pull attack back until transients dull, ease off → raise release until it <b>breathes in time</b> → final <span class="k">1–2 dB GR</span> → makeup.</p>`
 },
 /* ---------------- STAGE 2: EMOTIONAL / CREATIVE ---------------- */
+{ grp:"STAGE 2 · CREATIVE", id:"genre", tag:"GENRE FOCUS", color:0x5cff9b, viz:"genre",
+  title:"House vs Tech House",
+  sub:"Same 4-on-the-floor skeleton, two different feels. Knowing the difference tells you what to mix for.",
+  body:`
+  <h3>Two cousins, one family</h3>
+  <p>Both are 4-on-the-floor club music built on a kick on every beat. The split is in the <b>groove, the low end, and the space between the sounds</b>. House is <i>warm and musical</i>; tech house is <i>dry, rolling, and percussive</i>.</p>
+  <span class="demolabel">▶ A/B — the same tempo, two genres</span>
+  <div class="demos">
+    <button class="demo" data-d="house">▶ House groove (warm)</button>
+    <button class="demo" data-d="techHouse">▶ Tech house groove (rolling)</button>
+  </div>
+  <table>
+    <tr><th></th><th>House</th><th>Tech House</th></tr>
+    <tr><td>BPM</td><td>120–126</td><td>122–128</td></tr>
+    <tr><td>Kick</td><td>rounder, longer tail, ~50–60 Hz body</td><td>tight, punchy, short — leaves room for bass</td></tr>
+    <tr><td>Bass</td><td>warm sustained sub / deep notes</td><td><b>rolling 16ths</b>, syncopated, often a “rumble”</td></tr>
+    <tr><td>Chords</td><td>rich pads, piano/organ stabs, soul</td><td>sparse — one stab or none</td></tr>
+    <tr><td>Drums</td><td>open hats on the off-beat, claps</td><td>busy shaker/perc, dry closed hats, rides</td></tr>
+    <tr><td>Space</td><td>lush reverb, musical</td><td>dry &amp; tight, short rooms only</td></tr>
+    <tr><td>Sidechain</td><td>smooth, musical pump</td><td>snappy duck — keeps the roll punchy</td></tr>
+    <tr><td>Energy</td><td>euphoric, vocal-friendly</td><td>hypnotic, groove-locked, DJ tool</td></tr>
+  </table>
+  <h3>What this changes when you mix</h3>
+  <ul>
+    <li><b>House:</b> protect warmth — don’t over-HP the pads; let the sub <i>sustain</i>; reverb is part of the sound.</li>
+    <li><b>Tech house:</b> protect the <b>groove &amp; transients</b> — keep everything dry, carve mud hard, make the rolling bass and kick interlock with tight sidechain. Mono low end is non-negotiable for the club.</li>
+  </ul>
+  <span class="demolabel">▶ TARGET LOUDNESS — same track, two destinations</span>
+  <table>
+    <tr><th>Destination</th><th>Integrated LUFS</th><th>True-Peak</th></tr>
+    <tr><td><b>Streaming</b> (Spotify/Apple/YT — normalized)</td><td>−9 to −10 (don’t chase the −14 ref)</td><td>−1.0 dBTP (−2.0 for lossy/Apple)</td></tr>
+    <tr><td><b>Club / festival</b> (not normalized)</td><td>−6 to −8, keep dynamics</td><td>−0.3 to −1.0 dBTP</td></tr>
+  </table>
+  <div class="edm"><b>For EDM:</b> reference the <i>right</i> sub-genre — a tech-house roll mixed like a big-room house record will feel weak, and a house record mixed bone-dry loses its soul. Bounce one master, deliver both targets.</div>
+  <div class="tip">Quick ear test: if you want to <b>sing along</b>, it’s house. If you want to <b>lock into the bassline and never stop</b>, it’s tech house.</div>`
+},
 { grp:"STAGE 2 · CREATIVE", id:"sidechain", tag:"LESSON 6", color:0xffcf5c, viz:"sidechain",
   title:"Sidechain — The Pump",
   sub:"The signature move of house &amp; EDM. The clearest demo in this whole course.",
@@ -569,6 +605,16 @@ function buildViz(type,color){
     b.position.x=(i-N/2)*0.55;g.add(b);bars.push(b);}const kick=new THREE.Mesh(new THREE.SphereGeometry(.6,24,24),std(0xff2d9b,1));kick.position.y=-2.2;g.add(kick);
     g.userData.update=(t)=>{const beat=(t*2)%1,duck=Math.pow(beat,0.45);bars.forEach((b,i)=>{const base=1+Math.sin(i)*0.3;b.scale.y=base*(0.25+duck*1.6);});
       kick.scale.setScalar(1+(1-Math.min(beat*4,1))*0.8);};}
+  else if(type==="genre"){
+    // left: warm "house" sphere with a halo · right: dry rolling "tech house" bar line
+    const house=new THREE.Mesh(new THREE.SphereGeometry(1.1,32,32),std(0xffcf5c,.85));house.position.x=-2.4;
+    const halo=new THREE.Mesh(new THREE.TorusGeometry(1.7,0.04,8,64),new THREE.MeshBasicMaterial({color:0xffcf5c,transparent:true}));halo.position.x=-2.4;halo.rotation.x=Math.PI/2;
+    g.add(house,halo);
+    const N=10,roll=[];for(let i=0;i<N;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.26,1,0.26),std(0x5cff9b,.7));
+      b.position.set(2.4+(i-N/2)*0.36,0,0);g.add(b);roll.push(b);}
+    g.userData.update=(t,M)=>{const p=Math.pow(Math.abs(Math.sin(t*2.6)),3);house.scale.setScalar(1+p*0.3);
+      const hf=(t*0.4)%1;halo.scale.setScalar(1+hf*0.6);halo.material.opacity=1-hf;halo.rotation.z=t*M;
+      roll.forEach((b,i)=>{const h=0.4+Math.abs(Math.sin(i*0.9+t*6))*2.2;b.scale.y=h;b.position.y=h/2-1.2;});};}
   else if(type==="sat"){const N=70,pts=[];for(let i=0;i<N;i++)pts.push(new THREE.Vector3((i/N-0.5)*8,0,0));
     const geo=new THREE.BufferGeometry().setFromPoints(pts);g.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color:0x3dffa6})));
     g.userData.update=(t)=>{const p=geo.attributes.position,drive=1+Math.abs(Math.sin(t*0.5))*4;
@@ -751,11 +797,24 @@ function trigger(step,t){
   const d=demoName;
   // helper flags
   const drumsOut = (d==='compWet')?compBus:master;
-  if(['kick','bassNoSC','bassSC','scOff','scOn','compDry','compWet','full','loudLow','loudHigh'].includes(d)){
+  if(['kick','bassNoSC','bassSC','scOff','scOn','compDry','compWet','full','loudLow','loudHigh','house','techHouse'].includes(d)){
     if(onBeat) eKick(t, (d==='compWet')?compBus:master);
   }
   // sidechain duck trigger
-  if((d==='bassSC'||d==='scOn'||d==='full') && onBeat) duck(t);
+  if((d==='bassSC'||d==='scOn'||d==='full'||d==='house'||d==='techHouse') && onBeat) duck(t);
+  // ---- House vs Tech House genre demos ----
+  if(d==='house'){
+    if(step%4===2) eHat(t,master,0.26);          // open hats on the off-beat
+    if(step===4||step===12) eClap(t,master);      // claps on 2 & 4
+    if(step%2===0) eBass(t,(step%8<4?65.41:49.00),beat*0.5,duckBus,true); // warm sustained sub
+    if(step===0||step===8) eChord(t,beat*2,duckBus); // rich chord stabs
+  }
+  if(d==='techHouse'){
+    if(step%2===1) eHat(t,master,0.12);                          // dry closed hats
+    if(step===3||step===7||step===11||step===15) eHat(t,master,0.07); // extra shaker ticks
+    if(step===12) eClap(t,master);                               // single dry clap
+    if([0,2,3,6,8,10,11,14].includes(step)) eBass(t,65.41,beat*0.28,duckBus,true); // rolling 16ths
+  }
   // hats
   if(['compDry','compWet','full','loudLow','loudHigh'].includes(d) && step%2===1) eHat(t,drumsOut);
   // clap on beat 2 & 4 (step 4,12)
