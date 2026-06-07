@@ -62,6 +62,15 @@
   .good{color:var(--green); border-color:rgba(61,255,166,.4)}
   .bad{color:var(--pink); border-color:rgba(255,45,155,.4)}
   .note{font-size:11.5px; color:var(--muted); margin-top:8px; font-style:italic}
+  .sectionhead{margin:26px 0 14px; padding:14px 16px; background:linear-gradient(90deg,rgba(0,229,255,.10),rgba(155,92,255,.06)); border:1px solid var(--line); border-radius:12px; break-inside:avoid; break-before:page}
+  .sectionhead h2{margin:0 0 4px; font-size:18px; letter-spacing:.4px}
+  .sectionhead p{margin:0; color:var(--muted); font-size:12px}
+  .mfr{color:var(--green); font-weight:700}
+  .rot{color:var(--gold); font-weight:700}
+  .srccols{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+  ul.src{list-style:none; padding:0; margin:4px 0}
+  ul.src li{margin:4px 0; font-size:11.5px; color:#cfc8e6; padding-left:12px; position:relative}
+  ul.src li::before{content:"›"; position:absolute; left:0; color:var(--cyan)}
   footer{margin-top:18px; padding-top:12px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; display:flex; justify-content:space-between}
 
   @media print{
@@ -83,6 +92,13 @@
     .note,footer{color:#555}
     .pill{border-color:#bbb}
     .good{color:#0a6} .bad{color:#c0246b}
+    .sectionhead{background:#f0f0f0; border-color:#bbb; padding:8px 10px; margin:0 0 8px}
+    .sectionhead h2{font-size:13px; color:#111}
+    .sectionhead p{color:#555; font-size:9px}
+    .mfr{color:#0a6} .rot{color:#a67c00}
+    .srccols{gap:8px}
+    ul.src li{color:#222; font-size:8.5px}
+    ul.src li::before{color:#0a6}
   }
   .printbtn{
     position:fixed; right:18px; bottom:18px; background:var(--cyan); color:#04121a;
@@ -218,7 +234,7 @@
     </table>
     <p><span class="pill good">center/mono</span> kick · sub · lead · main clap<br>
        <span class="pill good">wide</span> hats · perc · arps · saw layers · FX</p>
-    <p class="note">Always HP reverb returns. Keep <b>&lt;120 Hz mono</b>. Check width in mono.</p>
+    <p class="note">Always HP reverb returns. Keep lows <b>mono below ~100 Hz</b> (watch up to ~200 Hz for vinyl). Check width in mono.</p>
   </div>
 
   <!-- 9 · SATURATION -->
@@ -259,8 +275,166 @@
 
 </div>
 
+<div class="sectionhead">
+  <h2>Pro Techniques — Deeply Sourced</h2>
+  <p>Settings used by manufacturers, mastering engineers, and audio-education sources. Tags: <b class="mfr">[MFR/ENG]</b> = manufacturer- or engineer-stated · <b class="rot">[RoT]</b> = widely-cited rule of thumb. Full source URLs at the bottom — every number is verifiable.</p>
+</div>
+
+<div class="grid">
+
+  <!-- P1 · PLATFORM LOUDNESS -->
+  <div class="card span2">
+    <h2><span class="tag" style="background:var(--pink)"></span>Streaming Loudness Normalization (reference levels)</h2>
+    <table>
+      <tr><th>Platform</th><th>Reference</th><th>Notes &amp; source</th></tr>
+      <tr><td><b>Spotify</b></td><td><span class="k">−14 LUFS</span></td><td>Official. True-peak <b>≤ −1 dBTP</b>; <b>≤ −2 dBTP</b> if your master is louder than −14. <span class="mfr">[MFR]</span></td></tr>
+      <tr><td><b>Apple Music</b></td><td><span class="k">−16 LUFS</span></td><td>Sound Check. Industry-confirmed, not a first-party doc. <span class="rot">[RoT]</span></td></tr>
+      <tr><td><b>YouTube</b></td><td><span class="k">−14 LUFS</span></td><td>Turns loud tracks down only. <span class="rot">[RoT]</span></td></tr>
+      <tr><td><b>Tidal / Amazon</b></td><td><span class="k">−14 LUFS</span></td><td>Track + album normalization. <span class="rot">[RoT]</span></td></tr>
+      <tr><td>EBU R128 (broadcast)</td><td><span class="k">−23 LUFS</span></td><td>Max <b>−1 dBTP</b>; ±0.5 LU tolerance. <span class="mfr">[MFR]</span></td></tr>
+      <tr><td>AES TD1008 (streaming rec.)</td><td><span class="k">−16 LUFS</span></td><td>Recommended distribution target for music. <span class="mfr">[MFR]</span></td></tr>
+    </table>
+    <p class="note"><b>Principle (Ian Shepherd):</b> “Integrated LUFS is <i>not</i> a target… it should be the <b>result, not the goal</b>.” Master for the sound; let normalization turn it down. A −6 LUFS club master simply gets turned down ~8 dB on Spotify — your dynamics/limiting choices remain.</p>
+  </div>
+
+  <!-- P2 · MIX-BUS GLUE -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--purple)"></span>Mix-Bus “Glue” Compression</h2>
+    <table>
+      <tr><td>Ratio</td><td><span class="k">1.5:1–2:1</span> (up to 4:1) <span class="mfr">[MFR]</span></td></tr>
+      <tr><td>Attack</td><td>slow <span class="k">~30–50 ms</span> (keep transients) <span class="mfr">[MFR]</span></td></tr>
+      <tr><td>Release</td><td><span class="k">~250 ms</span> or <b>Auto</b> <span class="mfr">[MFR]</span></td></tr>
+      <tr><td>Gain reduction</td><td><span class="k">1–3 dB</span> (“even 1 dB matters”) <span class="mfr">[MFR]</span></td></tr>
+    </table>
+    <p class="note"><b>SSL preset:</b> 2:1 · 30 ms · Auto release · 2–4 dB GR (Waves). NI Glue uses a faster 10 ms attack (cap ~15–20 ms). EDM tolerates 4–5 dB GR for “pump” (Attack Mag).</p>
+  </div>
+
+  <!-- P3 · DRUM & PARALLEL -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--green)"></span>Drum Bus &amp; Parallel Comp</h2>
+    <table>
+      <tr><td>Drum glue (SSL)</td><td><span class="k">4:1</span> · 10 ms · 0.1–0.3 rel · 4–6 dB GR <span class="mfr">[MFR]</span></td></tr>
+      <tr><td>EDM drum bus</td><td>attack <span class="k">~3 ms</span> · 2–10 dB GR <span class="rot">[RoT]</span></td></tr>
+      <tr><td>Parallel “smash”</td><td>fastest attack · <span class="k">~10:1</span> · ~20 dB GR, blend <i>under</i> dry <span class="mfr">[MFR]</span></td></tr>
+    </table>
+    <p class="note">Faster attack = more clamp; ~10 ms preserves snare/kick punch.</p>
+  </div>
+
+  <!-- P4 · SIDECHAIN -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--gold)"></span>Sidechain (measured settings)</h2>
+    <table>
+      <tr><td>Attack</td><td><span class="k">1–10 ms</span> (~4 ms avoids click) <span class="rot">[RoT]</span></td></tr>
+      <tr><td>Ratio</td><td><span class="k">5:1</span> kick→bass · 4:1 kick→synth · 8–20:1 for obvious pump <span class="rot">[RoT]</span></td></tr>
+      <tr><td>Release</td><td><span class="k">~60 ms</span> or timed to tempo <span class="rot">[RoT]</span></td></tr>
+    </table>
+    <p class="note"><b>Release-to-tempo:</b> <span class="k">60000 ÷ BPM</span> = quarter-note ms (124 BPM ≈ 484 ms). Set release to recover just before the next kick.</p>
+  </div>
+
+  <!-- P5 · MASTERING CHAIN -->
+  <div class="card span2">
+    <h2><span class="tag" style="background:var(--cyan)"></span>Mastering Chain — Order &amp; Settings</h2>
+    <p><b>Signal order (iZotope “ideal chain”):</b> corrective EQ → corrective multiband/dynamics (fast) → glue comp (low ratio, medium attack/release) → saturation → tonal “sweetening” EQ → stereo imaging → <b>limiter (last)</b>. <i>Do as little as needed.</i> <span class="mfr">[MFR]</span></p>
+    <table>
+      <tr><td>Master EQ</td><td>moves <span class="k">&lt; 3 dB</span>, wide Q; HP rumble at <span class="k">20–40 Hz</span> (wide bell) <span class="mfr">[MFR]</span></td></tr>
+      <tr><td>Master comp</td><td><span class="k">1.25:1–2:1</span>, <span class="k">1–2 dB</span> GR, slow-ish attack / fast release <span class="rot">[RoT]</span></td></tr>
+      <tr><td>Limiter</td><td>True-Peak ON · ceiling <span class="k">−1.0 dBTP</span> · <span class="k">4×/8×</span> oversampling + ≥0.1 ms lookahead <span class="mfr">[MFR]</span></td></tr>
+    </table>
+    <p class="note"><b>Ian Shepherd:</b> “A few dB less peak limiting almost always sounds just as good, if not better.” Don’t over-limit. <b>EDM:</b> hard-clip transients before the limiter so kicks keep punch and the limiter works less (Sage Audio).</p>
+  </div>
+
+  <!-- P6 · PRE-MASTER -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--purple)"></span>Pre-Master Bounce</h2>
+    <ul>
+      <li>Leave <b>~6 dB headroom</b> — peaks <span class="k">≤ −6 dBFS</span>; “just don’t clip it.” <span class="mfr">[MFR]</span></li>
+      <li>32-bit float won’t clip, but <b>analog-emulation plugins still distort hot</b> — keep channel levels lower throughout, not just the master.</li>
+      <li>Mix landing zone <span class="k">~−25 to −19 LUFS</span> integrated. <span class="rot">[RoT]</span></li>
+    </ul>
+    <p class="note">Source: Ian Shepherd / Production Advice.</p>
+  </div>
+
+  <!-- P7 · EQ PROBLEM FREQS -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--pink)"></span>Problem Frequencies &amp; Subtractive EQ</h2>
+    <table>
+      <tr><td>Mud</td><td><span class="k">200–500 Hz</span></td></tr>
+      <tr><td>Boxiness</td><td><span class="k">300–600 Hz</span></td></tr>
+      <tr><td>Harshness</td><td><span class="k">2–5 kHz</span> (to ~8 kHz)</td></tr>
+      <tr><td>Sibilance</td><td><span class="k">5–10 kHz</span></td></tr>
+    </table>
+    <p><b>Boost-sweep-cut:</b> narrow bell, big boost (~+12 dB, high Q), sweep to find the ugly resonance, then <b>cut</b> it. <span class="mfr">[MFR]</span></p>
+    <p class="note">Source: iZotope, Mastering The Mix. ⚠ “air” starts 6 kHz (MTM) vs 8 kHz (iZotope).</p>
+  </div>
+
+  <!-- P8 · REVERB & DELAY -->
+  <div class="card span2">
+    <h2><span class="tag" style="background:var(--cyan)"></span>Reverb &amp; Delay (specifics)</h2>
+    <table>
+      <tr><th>Reverb</th><th>Value</th><th>Delay</th><th>Value</th></tr>
+      <tr><td>Pre-delay intimate</td><td><span class="k">0–20 ms</span></td><td>Tempo sync</td><td>1/8, <b>dotted 1/8</b>, triplets</td></tr>
+      <tr><td>Pre-delay separation</td><td><span class="k">20–50 ms</span></td><td>Feedback</td><td>low for subtle depth</td></tr>
+      <tr><td>Pre-delay large</td><td><span class="k">50–80 ms</span></td><td>Return HPF</td><td><span class="k">~150–200 Hz</span></td></tr>
+      <tr><td>Room decay</td><td><span class="k">0.2–0.5 s</span></td><td>Return LPF</td><td><span class="k">~3–4 kHz</span></td></tr>
+      <tr><td>Hall decay</td><td><span class="k">1.8–2.2 s</span> (→3 s)</td><td>“Abbey Road” verb</td><td>HP send ~500–600 Hz, LP ~10 kHz</td></tr>
+    </table>
+    <p class="note">HP/LP reverb returns to stop muddy tails. Sources: Sound on Sound, Sweetwater, Valhalla, Sonible, Mastering The Mix, Nail The Mix.</p>
+  </div>
+
+  <!-- P9 · STEREO WIDTH -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--green)"></span>Stereo Width (sourced)</h2>
+    <ul>
+      <li>Keep lows <b>mono below ~100–200 Hz</b>. <span class="rot">[RoT]</span></li>
+      <li>Widen highs (cymbals/hats/perc); pan synths. <span class="mfr">[MFR]</span></li>
+      <li><b>Haas:</b> delay one side <span class="k">5–35 ms</span> (e.g. L 1 ms / R 25 ms, 100% wet) — <b>never</b> on sub &lt;~200 Hz; can vanish in mono. <span class="mfr">[MFR]</span></li>
+      <li>Mid/Side is more mono-safe than Haas. <b>Always check in mono.</b></li>
+    </ul>
+    <p class="note">Sources: Mastering The Mix, Audient, Sound on Sound.</p>
+  </div>
+
+  <!-- P10 · SOURCES -->
+  <div class="card span3">
+    <h2><span class="tag" style="background:var(--gold)"></span>Sources &amp; Reliability</h2>
+    <div class="srccols">
+      <div>
+        <h3>First-party / authoritative</h3>
+        <ul class="src">
+          <li>Spotify — Loudness Normalization (support.spotify.com)</li>
+          <li>EBU R128 spec (tech.ebu.ch) · ITU-R BS.1770</li>
+          <li>AES TD1004 / TD1008 (aes.org)</li>
+          <li>FabFilter Pro-L 2 &amp; Pro-MB help (fabfilter.com)</li>
+          <li>iZotope Learn — gain staging, headroom, EQ, mastering chain</li>
+          <li>Waves — SSL Bus Compressor guide · Native Instruments — Glue</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Engineer / education</h3>
+        <ul class="src">
+          <li>Ian Shepherd — Production Advice &amp; Sound on Sound</li>
+          <li>Sound on Sound — mix-bus compression, reverb &amp; delay</li>
+          <li>Mastering The Mix — frequency ranges, EQ, stereo width, delay</li>
+          <li>Attack Magazine — mix-bus compression</li>
+          <li>Production Music Live — kick &amp; bass EQ</li>
+          <li>Sage Audio — EDM mastering chain · Sonarworks, EDMProd — sidechain</li>
+        </ul>
+      </div>
+      <div>
+        <h3>⚠ Flags (sources disagree)</h3>
+        <ul class="src">
+          <li><b>Mono freq:</b> documented 100 Hz / 150 Hz; watch ≤200 Hz (vinyl); never crossover &lt;75 Hz. 120 Hz is lore.</li>
+          <li><b>Apple −16 LUFS, YouTube/Tidal/Amazon −14:</b> industry-confirmed, not first-party docs (Spotify &amp; EBU are first-party).</li>
+          <li><b>Loudness philosophy split:</b> EDM educators cite −6 to −7 LUFS; Shepherd argues against chasing LUFS / heavy limiting.</li>
+          <li><b>Mix-bus attack:</b> slow ~30–50 ms (SoS/SSL) vs faster 10 ms (NI). All agree: low ratio, 1–4 dB GR.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 <footer>
-  <span>EDM Mix &amp; Master Cheat Sheet — companion to the interactive 3D course.</span>
+  <span>EDM Mix &amp; Master Cheat Sheet — companion to the interactive 3D course. Sourced techniques verified June 2026.</span>
   <span>Print to A4 landscape · or save as PDF.</span>
 </footer>
 
