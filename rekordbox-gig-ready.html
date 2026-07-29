@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rekordbox Gig-Ready System — FLX4 + CDJ</title>
+<style>
+  :root{
+    --bg:#0d0a18; --card:#161229; --ink:#ECECF4; --muted:#9b94b8;
+    --line:#2a2342; --cyan:#00e5ff; --purple:#9b5cff; --pink:#ff2d9b;
+    --green:#3dffa6; --gold:#ffcf5c; --lime:#5cff9b; --blue:#4d8dff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font:14px/1.45 "Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); padding:28px; max-width:1180px; margin:0 auto;
+  }
+  header{display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
+    border-bottom:2px solid var(--line); padding-bottom:14px; margin-bottom:20px;}
+  h1{font-size:26px; margin:0; letter-spacing:.3px}
+  h1 .accent{color:var(--cyan)}
+  header .sub{color:var(--muted); font-size:12.5px; margin-top:4px}
+  .legend{font-size:11px; color:var(--muted); text-align:right; line-height:1.6}
+
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; align-items:start;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 15px; break-inside:avoid;}
+  .card.span2{grid-column:span 2}
+  .card.span3{grid-column:span 3}
+  .card h2{font-size:13px; text-transform:uppercase; letter-spacing:.8px; margin:0 0 10px;
+    padding-bottom:7px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px;}
+  .tag{width:10px;height:10px;border-radius:3px;display:inline-block;flex:0 0 auto;}
+  h3{font-size:12px; margin:12px 0 5px; color:var(--cyan); text-transform:uppercase; letter-spacing:.5px}
+  ul,ol{margin:6px 0; padding-left:18px} li{margin:3px 0} p{margin:6px 0}
+  b{color:#fff}
+  .k{color:var(--green); font-weight:700; background:rgba(61,255,166,.08); padding:0 4px; border-radius:4px;}
+  table{width:100%; border-collapse:collapse; margin:6px 0; font-size:12.5px}
+  th,td{text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.4px}
+  td:first-child{color:#cfc8e6; white-space:nowrap}
+  .note{font-size:11.5px; color:var(--muted); margin-top:8px; font-style:italic}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:middle;border:1px solid rgba(255,255,255,.25)}
+  .pad{font-weight:700;color:#fff;display:inline-block;width:20px}
+  .big{background:linear-gradient(90deg,rgba(0,229,255,.10),rgba(155,92,255,.06)); border:1px solid var(--line);
+    border-radius:12px; padding:16px; margin-bottom:18px}
+  .big h2{margin:0 0 8px; font-size:17px; border:0; padding:0; text-transform:none; letter-spacing:.3px}
+  .big .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:6px}
+  .big .steps div{font-size:12.5px} .big .steps b{color:var(--cyan)}
+  footer{margin-top:18px; padding-top:12px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; display:flex; justify-content:space-between}
+
+  @media print{
+    @page{ size:A4 landscape; margin:10mm; }
+    body{background:#fff; color:#111; padding:0; max-width:none; font-size:9.5px; line-height:1.3}
+    header{border-color:#bbb} h1{font-size:18px; color:#111} h1 .accent{color:#0a6}
+    .legend{color:#555}
+    .card{background:#fafafa; border-color:#ccc; border-radius:8px; padding:8px 9px}
+    .card h2{color:#111; border-color:#ccc; font-size:10.5px}
+    h3{color:#0a6; font-size:9.5px}
+    .k{color:#0a6; background:none; padding:0}
+    th,td{border-color:#ddd; padding:2px 4px; font-size:9px} th{color:#555} td:first-child{color:#222}
+    b{color:#000} .note,footer{color:#555}
+    .big{background:#f0f0f0; border-color:#bbb; padding:9px} .big h2{font-size:13px; color:#111}
+    .grid{gap:8px}
+  }
+  .printbtn{position:fixed; right:18px; bottom:18px; background:var(--cyan); color:#04121a; border:none;
+    padding:11px 18px; border-radius:24px; font-weight:700; cursor:pointer; box-shadow:0 6px 24px rgba(0,229,255,.35); font-size:13px;}
+  @media print{ .printbtn{display:none} }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1><span class="accent">Rekordbox</span> Gig-Ready System</h1>
+    <div class="sub">One prep, two rigs — DDJ-FLX4 (laptop) &amp; CDJ (USB). Set it once, ready anywhere.</div>
+  </div>
+  <div class="legend">
+    <span class="k">green</span> = do this every track<br>
+    prep once → plays on both
+  </div>
+</header>
+
+<div class="big">
+  <h2>🎯 The whole idea in one line</h2>
+  <p style="margin:0 0 4px">Your <b>computer's Rekordbox collection is the master</b>. The FLX4 plays straight from it; a CDJ plays from a USB you export from it. Same cues, colours &amp; tags travel to both — so you only ever prep <b>once</b>.</p>
+  <div class="steps">
+    <div><b>1 · Prep in Rekordbox</b><br>Analyze, cue, tag every track the same way. The FLX4 reads this live.</div>
+    <div><b>2 · Keep ONE gig USB</b><br>Export your playlists to it. Re-sync before every gig = instant CDJ-ready.</div>
+    <div><b>3 · Same layout everywhere</b><br>8 pads on the FLX4 = 8 Hot Cues on a CDJ-3000. Muscle memory carries over.</div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- PER-TRACK PREP -->
+  <div class="card span2">
+    <h2><span class="tag" style="background:var(--cyan)"></span>Per-Track Prep Routine (do the same every time)</h2>
+    <ol>
+      <li><b>Analyze</b> the track (set analysis to <b>Normal/Dynamic</b> for electronic; check the beatgrid downbeat lands on beat 1).</li>
+      <li><b>Turn Quantize ON</b> — every cue snaps to the grid, so nothing is ever off-beat.</li>
+      <li><b>Set your cues on phrase starts</b> (every 8/16/32 bars, on the downbeat) — see the cue map →</li>
+      <li><b>Set key points as BOTH</b> Hot Cue + Memory Cue (right-click Hot Cue → <i>Save as Memory</i>). Works on any player, old or new.</li>
+      <li><b>Colour-code</b> the Hot Cues by function (see map). Same colours on every track.</li>
+      <li><b>Fill the Comment</b> with mix info / mashup partner (shows on CDJ browse).</li>
+      <li><b>Tag it</b> with My Tag (genre, energy, vocal, mashup-ready) for instant filtering.</li>
+    </ol>
+    <p class="note">Because the FLX4 reads all of this from your collection, doing it once <b>automatically</b> makes the track CDJ-ready the moment you export.</p>
+  </div>
+
+  <!-- WHY BOTH -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--green)"></span>Why it covers both rigs</h2>
+    <table>
+      <tr><th></th><th>Reads cues from</th></tr>
+      <tr><td><b>DDJ-FLX4</b></td><td>your computer collection (Performance mode)</td></tr>
+      <tr><td><b>CDJ / XDJ</b></td><td>the exported gig USB</td></tr>
+    </table>
+    <p>Both sources are built from the <b>same prep</b>, so cues/colours/tags are identical. <b>8 FLX4 pads = 8 CDJ Hot Cues</b> → same A–H layout.</p>
+    <p class="note">The FLX4 itself has no USB slot — it always needs the laptop. The USB is purely your CDJ insurance.</p>
+  </div>
+
+  <!-- CUE MAP -->
+  <div class="card span2">
+    <h2><span class="tag" style="background:var(--pink)"></span>The Universal Cue Map (A–H) — same on FLX4 &amp; CDJ</h2>
+    <table>
+      <tr><th>Pad</th><th>Cue</th><th>Colour</th><th>Also a Memory Cue?</th></tr>
+      <tr><td><span class="pad">A</span></td><td>Intro / mix-in point</td><td><span class="dot" style="background:#3dffa6"></span>Green</td><td>✅ yes (load point)</td></tr>
+      <tr><td><span class="pad">B</span></td><td>Build-up start</td><td><span class="dot" style="background:#ffcf5c"></span>Yellow</td><td>optional</td></tr>
+      <tr><td><span class="pad">C</span></td><td><b>The drop</b> (money cue)</td><td><span class="dot" style="background:#ff3b5c"></span>Red</td><td>✅ yes</td></tr>
+      <tr><td><span class="pad">D</span></td><td>Vocal / hook</td><td><span class="dot" style="background:#b06cff"></span>Purple</td><td>optional</td></tr>
+      <tr><td><span class="pad">E</span></td><td>Breakdown start</td><td><span class="dot" style="background:#4d8dff"></span>Blue</td><td>✅ yes</td></tr>
+      <tr><td><span class="pad">F</span></td><td>Second drop</td><td><span class="dot" style="background:#ff3b5c"></span>Red</td><td>optional</td></tr>
+      <tr><td><span class="pad">G</span></td><td>Outro / mix-out point</td><td><span class="dot" style="background:#ffffff"></span>White</td><td>✅ yes</td></tr>
+      <tr><td><span class="pad">H</span></td><td>Loop-in / reload / mashup layer</td><td><span class="dot" style="background:#00e5ff"></span>Cyan</td><td>optional</td></tr>
+    </table>
+    <p class="note"><b>Memory Cues = your map</b> (navigate + know when to mix). <b>Hot Cues = your hands</b> (instant pad triggers). The 4 marked ✅ are the ones every track must have as both.</p>
+  </div>
+
+  <!-- MIX IN/OUT -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--gold)"></span>The 2 cues that matter most</h2>
+    <ul>
+      <li><b>Mix-IN</b> (Pad A / green) — first clean downbeat where the next track can enter.</li>
+      <li><b>Mix-OUT</b> (Pad G / white) — where you <i>start</i> blending the current track out.</li>
+    </ul>
+    <p>Nail these two on every track and 90% of tight mixing is done — on the CDJ you flick between them with the <b>search arrows</b>.</p>
+    <p class="note">Everything else is a bonus. If you only cue two points, cue these.</p>
+  </div>
+
+  <!-- MASHUP TAGGING -->
+  <div class="card span2">
+    <h2><span class="tag" style="background:var(--lime)"></span>Mashup Prep &amp; Tagging (hints that survive to the CDJ)</h2>
+    <h3>First check they fit</h3>
+    <p><b>Key:</b> same Camelot, ±1 (7A↔8A), or relative major/minor (8A↔8B). Acapella must match the instrumental's key. &nbsp; <b>BPM:</b> within ~<span class="k">±6%</span>, or use half/double time.</p>
+    <h3>Then leave breadcrumbs (all export to USB)</h3>
+    <table>
+      <tr><td><b>Comment field</b></td><td>partner + instruction, e.g. <i>“MASH → Titanium acap @ drop | 8A | in on HC-H”</i> — shows on CDJ browse</td></tr>
+      <tr><td><b>My Tag</b></td><td>a “Mashup” category: <i>Layer-ready, Acap, Mash-pair</i> → filter instantly</td></tr>
+      <tr><td><b>Same colour</b></td><td>give both tracks of a pair the same track colour</td></tr>
+      <tr><td><b>Named Hot Cue</b></td><td>name the launch point <i>“MASH IN – Levels acap”</i> (name shows on CDJ-3000)</td></tr>
+      <tr><td><b>Playlist</b></td><td>folder <b>MASHUPS</b> → one playlist per combo, base track then layer, side by side</td></tr>
+    </table>
+    <p class="note">Tip: sort a playlist by <b>Key</b> or <b>BPM</b> and compatible neighbours jump out — a fast way to find new pairs.</p>
+  </div>
+
+  <!-- LIBRARY STRUCTURE -->
+  <div class="card">
+    <h2><span class="tag" style="background:var(--purple)"></span>Playlist Structure</h2>
+    <ul>
+      <li>📁 <b>SETS</b> — one playlist per gig/vibe, in play order</li>
+      <li>📁 <b>MASHUPS</b> — one playlist per combo</li>
+      <li>📁 <b>CRATES</b> — by genre / energy</li>
+      <li>⭐ <b>NEW / TO-PREP</b> — un-cued tracks land here first</li>
+    </ul>
+    <p class="note">Use Intelligent Playlists (auto by BPM/key/rating) so crates fill themselves.</p>
+  </div>
+
+  <!-- EXPORT / BACKUP -->
+  <div class="card span3">
+    <h2><span class="tag" style="background:var(--cyan)"></span>Export &amp; Backup Drill — the one habit that keeps you CDJ-ready</h2>
+    <div class="srcgrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <div>
+        <h3>Before every gig</h3>
+        <ul>
+          <li>Format the gig USB <b>exFAT</b> (or FAT32) — most reliable on CDJs.</li>
+          <li>Rekordbox → <b>Export mode</b> → drag your SET + MASHUPS playlists onto the device.</li>
+          <li>Or use <b>Sync Manager</b> to update only what changed.</li>
+          <li>Safely eject. Carry a <b>2nd identical USB</b> as backup.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Golden rules</h3>
+        <ul>
+          <li><b>Re-export after ANY cue/track change</b> — the USB is a snapshot, not live.</li>
+          <li><b>Never drag-copy USB→USB in Finder/Explorer</b> — it breaks cues. Always export from Rekordbox.</li>
+          <li>Keep the <b>collection backed up</b> (Rekordbox → Backup Library) so cues are never lost.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>At the club (CDJ)</h3>
+        <ul>
+          <li>Plug in → browse by <b>Playlist</b> → your cues, colours &amp; comments are all there.</li>
+          <li><b>Memory Cues</b> = search-arrow navigation; <b>Hot Cues</b> = pads A–H.</li>
+          <li>Set new cues on the CDJ? Save to USB, then <b>Import to Collection</b> back home so nothing is stranded.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <span>Rekordbox Gig-Ready System — prep once in your collection, export to USB, play on FLX4 or CDJ.</span>
+  <span>Print to A4 landscape · or save as PDF.</span>
+</footer>
+
+<button class="printbtn" onclick="window.print()">🖨 Print / Save PDF</button>
+</body>
+</html>
