@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rekordbox In-App Reference</title>
+<style>
+  @page{ size:A4 portrait; margin:12mm; }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{font:11px/1.4 "Segoe UI",Arial,sans-serif; color:#14121c}
+  h1{font-size:20px; letter-spacing:.3px}
+  h1 .a{color:#008a9e}
+  .sub{color:#666; font-size:11px; margin-top:2px}
+  .hdr{border-bottom:2px solid #14121c; padding-bottom:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:flex-end}
+  h2{font-size:12.5px; text-transform:uppercase; letter-spacing:.6px; margin:14px 0 6px; padding:5px 8px; background:#14121c; color:#fff; border-radius:4px}
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .box{border:1px solid #cfcada; border-radius:6px; padding:8px 10px; background:#faf9fc}
+  .box h3{font-size:11px; color:#008a9e; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px}
+  table{width:100%; border-collapse:collapse; margin:2px 0}
+  th,td{text-align:left; padding:3px 5px; border-bottom:1px solid #ded9e8; vertical-align:top; font-size:10px}
+  th{background:#efecf5; font-size:9px; text-transform:uppercase; letter-spacing:.3px; color:#555}
+  td:first-child{white-space:nowrap; font-weight:600}
+  b{color:#000}
+  .k{color:#008a9e; font-weight:700}
+  .dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; border:1px solid rgba(0,0,0,.2)}
+  .pad{font-weight:800; color:#000; display:inline-block; width:16px}
+  ul,ol{padding-left:16px} li{margin:2px 0}
+  .note{font-size:9.5px; color:#666; font-style:italic; margin-top:4px}
+  .must{background:#fff2f6; border-left:3px solid #ff2d9b; padding:6px 9px; border-radius:0 4px 4px 0; margin:8px 0; font-size:10.5px}
+  .pagebreak{page-break-before:always}
+  footer{margin-top:14px; padding-top:8px; border-top:1px solid #cfcada; color:#888; font-size:9px; text-align:center}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1><span class="a">Rekordbox</span> In-App Reference</h1>
+    <div class="sub">Keep this open beside Rekordbox while you prep · FLX4 + CDJ ready</div>
+  </div>
+  <div style="text-align:right;font-size:9.5px;color:#666">Quantize ON · cue on the downbeat<br>set key points as Hot <b>+</b> Memory</div>
+</div>
+
+<h2>1 · The two cue types — when to use each</h2>
+<div class="two">
+  <div class="box">
+    <h3>🔺 Memory Cue = your MAP</h3>
+    <p>Use to <b>navigate</b> the track and know <b>when to mix</b>.</p>
+    <ul>
+      <li>Mark every section start (intro, build, drop, breakdown, outro)</li>
+      <li>On CDJ: jump between them with the <b>search arrows</b></li>
+      <li>Unlimited — be generous</li>
+      <li>One is the <b>load point</b> (where the track cues on load)</li>
+    </ul>
+    <p class="note">For finding your place &amp; timing transitions.</p>
+  </div>
+  <div class="box">
+    <h3>🎛️ Hot Cue = your HANDS</h3>
+    <p>Use to <b>perform</b> — instant one-tap jumps.</p>
+    <ul>
+      <li>Loaded on the <b>A–H pads</b> (8 on FLX4 = 8 on CDJ-3000)</li>
+      <li>Smash to the drop, fire a vocal, reload, loop-in</li>
+      <li>Max 8 — reserve for things you trigger live</li>
+      <li>Shown as coloured markers on the waveform</li>
+    </ul>
+    <p class="note">For live triggers you hit with your fingers.</p>
+  </div>
+</div>
+<div class="must"><b>The pro move:</b> set the drop, mix-in, mix-out &amp; breakdown as <b>BOTH</b>. Right-click a Hot Cue → <b>Save as Memory Cue</b>. Now they work on every player and one tap / one arrow away.</div>
+
+<h2>2 · The pad map (A–H) — when you use each</h2>
+<table>
+  <tr><th>Pad</th><th>Cue</th><th>Colour</th><th>When you use it</th><th>Both?</th></tr>
+  <tr><td><span class="pad">A</span></td><td>Mix-IN</td><td><span class="dot" style="background:#3dcf86"></span>Green</td><td>First clean downbeat — load &amp; beatmatch in from here</td><td>✅</td></tr>
+  <tr><td><span class="pad">B</span></td><td>Build-up</td><td><span class="dot" style="background:#e6b800"></span>Yellow</td><td>Skip straight into the riser/tension</td><td>—</td></tr>
+  <tr><td><span class="pad">C</span></td><td><b>Drop</b></td><td><span class="dot" style="background:#e63950"></span>Red</td><td>Money cue — jump crowd to the drop / reload</td><td>✅</td></tr>
+  <tr><td><span class="pad">D</span></td><td>Vocal / hook</td><td><span class="dot" style="background:#9b5cff"></span>Purple</td><td>Fire the hook or acapella moment (mashups)</td><td>—</td></tr>
+  <tr><td><span class="pad">E</span></td><td>Breakdown</td><td><span class="dot" style="background:#3d7bff"></span>Blue</td><td>Drop energy / set up the next transition</td><td>✅</td></tr>
+  <tr><td><span class="pad">F</span></td><td>2nd drop</td><td><span class="dot" style="background:#e63950"></span>Red</td><td>Skip forward to the next peak</td><td>—</td></tr>
+  <tr><td><span class="pad">G</span></td><td>Mix-OUT</td><td><span class="dot" style="background:#ffffff"></span>White</td><td>Where you START blending out — never overstay</td><td>✅</td></tr>
+  <tr><td><span class="pad">H</span></td><td>Loop / reload / mashup layer</td><td><span class="dot" style="background:#00b8cc"></span>Cyan</td><td>Loop-in, reload trigger, or launch a mashup layer</td><td>—</td></tr>
+</table>
+<div class="must"><b>Short on time?</b> Cue only <b>A (mix-in), C (drop), G (mix-out)</b> as Hot + Memory. That alone makes a track gig-ready.</div>
+
+<footer>Rekordbox In-App Reference · page 1 of 2 · companion to the Gig-Ready System</footer>
+
+<!-- PAGE 2 -->
+<div class="pagebreak"></div>
+
+<div class="hdr">
+  <div>
+    <h1><span class="a">Rekordbox</span> In-App Reference</h1>
+    <div class="sub">Tagging tools · prep order · harmonic mixing</div>
+  </div>
+  <div style="text-align:right;font-size:9.5px;color:#666">page 2 of 2</div>
+</div>
+
+<h2>3 · The tagging tools — when to use each</h2>
+<table>
+  <tr><th>Tool</th><th>When to use it</th><th>Example</th></tr>
+  <tr><td>💬 Comment</td><td>Track-specific instructions you want to <b>read on the CDJ screen</b> while browsing</td><td><i>MASH → Titanium acap @ drop | 8A | HC-H</i></td></tr>
+  <tr><td>🏷️ My Tag</td><td><b>Filter your library fast</b> — pull up a vibe mid-set in one click</td><td>Energy 1–5 · Vocal/Instr · Genre · Mashup-ready</td></tr>
+  <tr><td>🎨 Colour</td><td><b>Visual grouping</b> — spot related tracks without reading</td><td>Same colour = both halves of a mashup pair</td></tr>
+  <tr><td>⭐ Rating</td><td><b>Quality / priority</b> — sort to grab bangers first</td><td>5★ = floor-filler · 3★ = filler · 1★ = maybe</td></tr>
+  <tr><td>📁 Playlist</td><td><b>Order &amp; sets</b> — this is what you export to USB</td><td>SETS · MASHUPS · CRATES folders</td></tr>
+</table>
+
+<h2>4 · Per-track prep order (do the same every time)</h2>
+<ol>
+  <li><b>Analyze</b> → check the beatgrid downbeat sits on beat 1</li>
+  <li><b>Quantize ON</b></li>
+  <li>Set <b>A / C / G</b> (mix-in, drop, mix-out) as Hot <b>+</b> Memory — the non-negotiables</li>
+  <li>Add <b>B, D, E, F, H</b> if the track needs them</li>
+  <li><b>Colour</b> the Hot Cues per the map</li>
+  <li>Fill the <b>Comment</b>, add <b>My Tags</b>, set a <b>Rating</b></li>
+  <li>Drag into the right <b>Playlist</b></li>
+  <li>Playlists done → <b>export to the gig USB</b> (re-export after ANY change)</li>
+</ol>
+<p class="note">Prep your next 20–30 tracks first — not the whole library at once.</p>
+
+<h2>5 · Harmonic mixing quick-ref (for clean mixes &amp; mashups)</h2>
+<div class="two">
+  <div class="box">
+    <h3>What keys blend</h3>
+    <table>
+      <tr><td>Same key</td><td>8A → 8A · perfect</td></tr>
+      <tr><td>±1 on wheel</td><td>8A → 7A or 9A · smooth</td></tr>
+      <tr><td>Relative maj/min</td><td>8A ↔ 8B · mood shift</td></tr>
+      <tr><td>+7 (energy boost)</td><td>8A → 3A · lifts the room</td></tr>
+    </table>
+    <p class="note">Acapella must match the instrumental's key (or key-shift it).</p>
+  </div>
+  <div class="box">
+    <h3>Tempo (BPM)</h3>
+    <ul>
+      <li>Within <b class="k">±6%</b> pitches cleanly</li>
+      <li>Bigger gap → use <b>half / double time</b> (e.g. 140 over ~70)</li>
+      <li>Sort a playlist by <b>Key</b> or <b>BPM</b> — compatible neighbours jump out</li>
+    </ul>
+    <p class="note">Mashup = compatible key <b>and</b> tempo, then mark the in/out cues on both tracks.</p>
+  </div>
+</div>
+
+<footer>Rekordbox In-App Reference · page 2 of 2 · prep once → play on FLX4 or CDJ</footer>
+
+</body>
+</html>
